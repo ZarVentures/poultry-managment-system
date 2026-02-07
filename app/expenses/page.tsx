@@ -34,6 +34,8 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [viewingExpense, setViewingExpense] = useState<Expense | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -392,13 +394,20 @@ export default function ExpensesPage() {
                   {filteredExpenses
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((expense) => (
-                      <TableRow key={expense.id}>
+                      <TableRow 
+                        key={expense.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => {
+                          setViewingExpense(expense)
+                          setShowViewDialog(true)
+                        }}
+                      >
                         <TableCell>{expense.date}</TableCell>
                         <TableCell className="capitalize">{expense.category}</TableCell>
                         <TableCell>{expense.description}</TableCell>
                         <TableCell className="font-medium">₹{expense.amount}</TableCell>
                         <TableCell className="capitalize">{expense.paymentMethod}</TableCell>
-                        <TableCell className="text-right space-x-2">
+                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(expense)}>
                             <Edit2 size={16} />
                           </Button>
@@ -413,6 +422,48 @@ export default function ExpensesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* View Dialog */}
+        <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Expense Details</DialogTitle>
+              <DialogDescription>View complete expense information</DialogDescription>
+            </DialogHeader>
+            {viewingExpense && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Date</Label>
+                    <div className="text-sm font-medium">{viewingExpense.date}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Category</Label>
+                    <div className="text-sm font-medium capitalize">{viewingExpense.category}</div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-muted-foreground">Description</Label>
+                    <div className="text-sm font-medium">{viewingExpense.description}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Amount</Label>
+                    <div className="text-sm font-medium font-semibold">₹{viewingExpense.amount}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Payment Method</Label>
+                    <div className="text-sm font-medium capitalize">{viewingExpense.paymentMethod}</div>
+                  </div>
+                  {viewingExpense.notes && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-muted-foreground">Notes</Label>
+                      <div className="text-sm font-medium">{viewingExpense.notes}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

@@ -33,6 +33,8 @@ export default function FarmersPage() {
   const [farmers, setFarmers] = useState<Farmer[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [viewingFarmer, setViewingFarmer] = useState<Farmer | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -130,6 +132,11 @@ export default function FarmersPage() {
       setFarmers(updated)
       localStorage.setItem("farmers", JSON.stringify(updated))
     }
+  }
+
+  const handleView = (farmer: Farmer) => {
+    setViewingFarmer(farmer)
+    setShowViewDialog(true)
   }
 
   if (!mounted) return null
@@ -269,12 +276,16 @@ export default function FarmersPage() {
                     </TableRow>
         ) : (
           farmers.map((farmer) => (
-                      <TableRow key={farmer.id}>
+                      <TableRow 
+                        key={farmer.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(farmer)}
+                      >
                         <TableCell className="font-medium">{farmer.name}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.phone}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.address || "N/A"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.joinDate}</TableCell>
-                        <TableCell className="text-right space-x-2">
+                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(farmer)}>
                             <Edit2 size={16} />
                     </Button>
@@ -290,6 +301,50 @@ export default function FarmersPage() {
                 </div>
               </CardContent>
             </Card>
+
+        {/* View Dialog */}
+        <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Farmer Details</DialogTitle>
+              <DialogDescription>View complete farmer information</DialogDescription>
+            </DialogHeader>
+            {viewingFarmer && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Name</Label>
+                    <div className="text-sm font-medium">{viewingFarmer.name}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Phone</Label>
+                    <div className="text-sm font-medium">{viewingFarmer.phone}</div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-muted-foreground">Address</Label>
+                    <div className="text-sm font-medium">{viewingFarmer.address || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Join Date</Label>
+                    <div className="text-sm font-medium">{viewingFarmer.joinDate}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        viewingFarmer.status === "active"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}>
+                        {viewingFarmer.status === "active" ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

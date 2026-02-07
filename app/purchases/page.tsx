@@ -48,6 +48,8 @@ export default function PurchasesPage() {
   const [farmers, setFarmers] = useState<Farmer[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [viewingOrder, setViewingOrder] = useState<PurchaseOrder | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<{
     supplier: string
@@ -209,6 +211,11 @@ export default function PurchasesPage() {
       setOrders(updated)
       localStorage.setItem("purchases", JSON.stringify(updated))
     }
+  }
+
+  const handleView = (order: PurchaseOrder) => {
+    setViewingOrder(order)
+    setShowViewDialog(true)
   }
 
   // Filter orders based on date range
@@ -443,7 +450,11 @@ export default function PurchasesPage() {
                     </TableRow>
                   ) : (
                     filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
+                      <TableRow 
+                        key={order.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(order)}
+                      >
                         <TableCell className="font-medium">{order.orderNumber}</TableCell>
                         <TableCell>{order.supplier}</TableCell>
                         <TableCell>{order.date}</TableCell>
@@ -458,10 +469,7 @@ export default function PurchasesPage() {
                             {formatStatus(order.status)}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button variant="outline" size="icon">
-                            <Eye size={16} />
-                          </Button>
+                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(order)}>
                             <Edit2 size={16} />
                           </Button>
@@ -477,6 +485,70 @@ export default function PurchasesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* View Dialog */}
+        <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Purchase Order Details</DialogTitle>
+              <DialogDescription>View complete purchase order information</DialogDescription>
+            </DialogHeader>
+            {viewingOrder && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Order Number</Label>
+                    <div className="text-sm font-medium">{viewingOrder.orderNumber}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Supplier</Label>
+                    <div className="text-sm font-medium">{viewingOrder.supplier}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Date</Label>
+                    <div className="text-sm font-medium">{viewingOrder.date}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(viewingOrder.status)}`}>
+                        {formatStatus(viewingOrder.status)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Bird Quantity</Label>
+                    <div className="text-sm font-medium">{viewingOrder.birdQuantity.toLocaleString()}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Cage Quantity</Label>
+                    <div className="text-sm font-medium">{viewingOrder.cageQuantity.toLocaleString()}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Unit Cost</Label>
+                    <div className="text-sm font-medium">₹{viewingOrder.unitCost.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Total Value</Label>
+                    <div className="text-sm font-medium font-semibold">₹{viewingOrder.totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  </div>
+                  {viewingOrder.description && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-muted-foreground">Description</Label>
+                      <div className="text-sm font-medium">{viewingOrder.description}</div>
+                    </div>
+                  )}
+                  {viewingOrder.notes && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-muted-foreground">Notes</Label>
+                      <div className="text-sm font-medium">{viewingOrder.notes}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

@@ -11,7 +11,7 @@ interface User {
   id: string
   name: string
   email: string
-  role: "admin" | "operator" | "staff"
+  role: "admin" | "operator"
   status: "active" | "inactive"
   password?: string
   locked?: boolean
@@ -46,18 +46,6 @@ export default function Home() {
           email: "operator@azizpoultry.com",
           phone: "+1234567891",
           role: "operator",
-          status: "active",
-          password: "demo123",
-          joinDate: new Date().toISOString().split("T")[0],
-          lastLogin: "Never",
-          locked: false,
-        },
-        {
-          id: "3",
-          name: "Staff Member",
-          email: "staff@azizpoultry.com",
-          phone: "+1234567892",
-          role: "staff",
           status: "active",
           password: "demo123",
           joinDate: new Date().toISOString().split("T")[0],
@@ -115,6 +103,17 @@ export default function Home() {
       return
     }
 
+    // Update last login date for this user
+    const updatedUsers = users.map((u) =>
+      u.id === user.id
+        ? {
+            ...u,
+            lastLogin: new Date().toISOString().split("T")[0],
+          }
+        : u,
+    )
+    localStorage.setItem("users", JSON.stringify(updatedUsers))
+
     // Store logged in user (without password)
     const { password: _, ...userWithoutPassword } = user
     localStorage.setItem(
@@ -142,18 +141,29 @@ export default function Home() {
       const adminUser = users.find((u) => u.role === "admin" && u.status === "active")
       
       if (adminUser) {
+        // Update last login date for this user
+        const updatedUsers = users.map((u) =>
+          u.id === adminUser.id
+            ? {
+                ...u,
+                lastLogin: new Date().toISOString().split("T")[0],
+              }
+            : u,
+        )
+        localStorage.setItem("users", JSON.stringify(updatedUsers))
+
         const { password: _, ...userWithoutPassword } = adminUser
-    localStorage.setItem(
-      "user",
-      JSON.stringify({
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
             email: adminUser.email,
             role: adminUser.role,
             name: adminUser.name,
-      }),
-    )
-    setTimeout(() => {
-      window.location.href = "/dashboard"
-    }, 500)
+          }),
+        )
+        setTimeout(() => {
+          window.location.href = "/dashboard"
+        }, 500)
         return
       }
     }
@@ -207,8 +217,7 @@ export default function Home() {
           <div className="mt-6 p-4 bg-blue-50 dark:bg-slate-800 rounded-lg text-sm text-muted-foreground">
             <p className="font-semibold mb-2">Demo Credentials:</p>
             <p className="mb-1">Admin: admin@azizpoultry.com / demo123</p>
-            <p className="mb-1">Operator: operator@azizpoultry.com / demo123</p>
-            <p>Staff: staff@azizpoultry.com / demo123</p>
+            <p>Operator: operator@azizpoultry.com / demo123</p>
           </div>
 
         </CardContent>

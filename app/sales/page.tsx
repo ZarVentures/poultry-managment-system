@@ -36,6 +36,8 @@ export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [viewingSale, setViewingSale] = useState<Sale | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<{
     customer: string
@@ -147,6 +149,11 @@ export default function SalesPage() {
       setSales(updated)
       localStorage.setItem("sales", JSON.stringify(updated))
     }
+  }
+
+  const handleView = (sale: Sale) => {
+    setViewingSale(sale)
+    setShowViewDialog(true)
   }
 
   const getPaymentStatusColor = (status: string) => {
@@ -341,7 +348,11 @@ export default function SalesPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredSales.map((sale) => (
-                    <TableRow key={sale.id}>
+                    <TableRow 
+                      key={sale.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleView(sale)}
+                    >
                       <TableCell className="font-medium">{sale.invoiceNumber}</TableCell>
                       <TableCell>{sale.customer}</TableCell>
                       <TableCell>{sale.date}</TableCell>
@@ -355,7 +366,7 @@ export default function SalesPage() {
                           {sale.paymentStatus.charAt(0).toUpperCase() + sale.paymentStatus.slice(1)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right space-x-2">
+                      <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                         <Button variant="outline" size="icon" onClick={() => handleEdit(sale)}>
                           <Edit2 size={16} />
                         </Button>
@@ -370,6 +381,64 @@ export default function SalesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* View Dialog */}
+        <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Sale Details</DialogTitle>
+              <DialogDescription>View complete sale information</DialogDescription>
+            </DialogHeader>
+            {viewingSale && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Invoice Number</Label>
+                    <div className="text-sm font-medium">{viewingSale.invoiceNumber}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Customer</Label>
+                    <div className="text-sm font-medium">{viewingSale.customer}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Date</Label>
+                    <div className="text-sm font-medium">{viewingSale.date}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Product Type</Label>
+                    <div className="text-sm font-medium capitalize">{viewingSale.productType || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Quantity</Label>
+                    <div className="text-sm font-medium">{viewingSale.quantity}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Unit Price</Label>
+                    <div className="text-sm font-medium">₹{viewingSale.unitPrice}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Total Amount</Label>
+                    <div className="text-sm font-medium">₹{viewingSale.totalAmount}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Payment Status</Label>
+                    <div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusColor(viewingSale.paymentStatus)}`}>
+                        {viewingSale.paymentStatus.charAt(0).toUpperCase() + viewingSale.paymentStatus.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                  {viewingSale.notes && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-muted-foreground">Notes</Label>
+                      <div className="text-sm font-medium">{viewingSale.notes}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

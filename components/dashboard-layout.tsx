@@ -21,6 +21,7 @@ import {
   Users2,
   Calculator,
   Truck,
+  AlertCircle,
 } from "lucide-react"
 import { DateRangeFilter } from "@/components/date-range-filter"
 import { useDateFilter } from "@/contexts/date-filter-context"
@@ -96,6 +97,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <SidebarLink href="/inventory" icon={Package} label="Godown" open={sidebarOpen} />
           <SidebarLink href="/purchases" icon={ShoppingCart} label="Purchases" open={sidebarOpen} />
           <SidebarLink href="/sales" icon={TrendingUp} label="Sales" open={sidebarOpen} />
+          <SidebarLink href="/mortality" icon={AlertCircle} label="Mortality" open={sidebarOpen} />
           <SidebarLink href="/expenses" icon={BarChart3} label="Expenses" open={sidebarOpen} />
           <SidebarLink href="/reports" icon={BarChart3} label="Reports" open={sidebarOpen} />
           <SidebarLink href="/financial-analytics" icon={Calculator} label="Financial Analytics" open={sidebarOpen} />
@@ -199,6 +201,7 @@ function DateFilterHeader() {
     "/inventory",
     "/purchases",
     "/sales",
+    "/mortality",
     "/expenses",
   ].includes(pathname)
 

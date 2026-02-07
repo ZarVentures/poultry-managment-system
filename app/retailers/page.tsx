@@ -35,6 +35,8 @@ export default function RetailersPage() {
   const [retailers, setRetailers] = useState<Retailer[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [viewingRetailer, setViewingRetailer] = useState<Retailer | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     shopName: "",
@@ -139,6 +141,11 @@ export default function RetailersPage() {
       setRetailers(updated)
       localStorage.setItem("retailers", JSON.stringify(updated))
     }
+  }
+
+  const handleView = (retailer: Retailer) => {
+    setViewingRetailer(retailer)
+    setShowViewDialog(true)
   }
 
   if (!mounted) return null
@@ -287,13 +294,17 @@ export default function RetailersPage() {
                     </TableRow>
         ) : (
           retailers.map((retailer) => (
-                      <TableRow key={retailer.id}>
+                      <TableRow 
+                        key={retailer.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(retailer)}
+                      >
                         <TableCell className="font-medium">{retailer.shopName}</TableCell>
                         <TableCell>{retailer.ownerName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{retailer.phone}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{retailer.address || "N/A"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{retailer.joinDate || "N/A"}</TableCell>
-                        <TableCell className="text-right space-x-2">
+                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(retailer)}>
                             <Edit2 size={16} />
                     </Button>
@@ -309,6 +320,54 @@ export default function RetailersPage() {
                 </div>
               </CardContent>
             </Card>
+
+        {/* View Dialog */}
+        <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Retailer Details</DialogTitle>
+              <DialogDescription>View complete retailer information</DialogDescription>
+            </DialogHeader>
+            {viewingRetailer && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Shop Name</Label>
+                    <div className="text-sm font-medium">{viewingRetailer.shopName}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Owner Name</Label>
+                    <div className="text-sm font-medium">{viewingRetailer.ownerName}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Phone</Label>
+                    <div className="text-sm font-medium">{viewingRetailer.phone}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Join Date</Label>
+                    <div className="text-sm font-medium">{viewingRetailer.joinDate || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-muted-foreground">Address</Label>
+                    <div className="text-sm font-medium">{viewingRetailer.address || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        viewingRetailer.status === "active"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}>
+                        {viewingRetailer.status === "active" ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

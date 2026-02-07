@@ -24,7 +24,9 @@ interface Vehicle {
   vehicleType: string
   driverName: string
   phone: string
-  capacity: string
+  totalCapacity: string
+  petrolTankCapacity: string
+  mileage: string
   joinDate: string
   status: "active" | "inactive"
 }
@@ -33,13 +35,17 @@ export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [viewingVehicle, setViewingVehicle] = useState<Vehicle | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     vehicleNumber: "",
     vehicleType: "",
     driverName: "",
     phone: "",
-    capacity: "",
+    totalCapacity: "",
+    petrolTankCapacity: "",
+    mileage: "",
     joinDate: new Date().toISOString().split("T")[0],
     status: "active" as "active" | "inactive",
   })
@@ -49,14 +55,17 @@ export default function VehiclesPage() {
     const savedVehicles = localStorage.getItem("vehicles")
     if (savedVehicles) {
       const parsed = JSON.parse(savedVehicles)
-      // Add status field for backward compatibility
-      const vehiclesWithStatus = parsed.map((vehicle: Vehicle) => ({
+      // Add new fields for backward compatibility
+      const vehiclesWithFields = parsed.map((vehicle: Vehicle) => ({
         ...vehicle,
         status: vehicle.status || "active",
+        totalCapacity: vehicle.totalCapacity || vehicle.capacity || "",
+        petrolTankCapacity: vehicle.petrolTankCapacity || "",
+        mileage: vehicle.mileage || "",
       }))
-      setVehicles(vehiclesWithStatus)
-      // Update localStorage with status field
-      localStorage.setItem("vehicles", JSON.stringify(vehiclesWithStatus))
+      setVehicles(vehiclesWithFields)
+      // Update localStorage with new fields
+      localStorage.setItem("vehicles", JSON.stringify(vehiclesWithFields))
     } else {
       setVehicles([])
     }
@@ -77,7 +86,9 @@ export default function VehiclesPage() {
               vehicleType: formData.vehicleType,
               driverName: formData.driverName,
               phone: formData.phone,
-              capacity: formData.capacity,
+              totalCapacity: formData.totalCapacity,
+              petrolTankCapacity: formData.petrolTankCapacity,
+              mileage: formData.mileage,
               joinDate: formData.joinDate,
               status: formData.status,
             }
@@ -92,7 +103,9 @@ export default function VehiclesPage() {
         vehicleType: formData.vehicleType,
         driverName: formData.driverName,
         phone: formData.phone,
-        capacity: formData.capacity,
+        totalCapacity: formData.totalCapacity,
+        petrolTankCapacity: formData.petrolTankCapacity,
+        mileage: formData.mileage,
         joinDate: formData.joinDate,
         status: formData.status,
       }
@@ -111,7 +124,9 @@ export default function VehiclesPage() {
       vehicleType: "",
       driverName: "",
       phone: "",
-      capacity: "",
+      totalCapacity: "",
+      petrolTankCapacity: "",
+      mileage: "",
       joinDate: new Date().toISOString().split("T")[0],
       status: "active" as "active" | "inactive",
     })
@@ -125,7 +140,9 @@ export default function VehiclesPage() {
       vehicleType: vehicle.vehicleType,
       driverName: vehicle.driverName,
       phone: vehicle.phone,
-      capacity: vehicle.capacity,
+      totalCapacity: vehicle.totalCapacity || "",
+      petrolTankCapacity: vehicle.petrolTankCapacity || "",
+      mileage: vehicle.mileage || "",
       joinDate: vehicle.joinDate || new Date().toISOString().split("T")[0],
       status: vehicle.status || "active",
     })
@@ -229,12 +246,33 @@ export default function VehiclesPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Capacity / Details</Label>
+                  <div className="space-y-2">
+                    <Label>Total Capacity</Label>
                     <Input
-                      value={formData.capacity}
-                      onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                      placeholder="Vehicle capacity or additional details"
+                      type="number"
+                      value={formData.totalCapacity}
+                      onChange={(e) => setFormData({ ...formData, totalCapacity: e.target.value })}
+                      placeholder="Total capacity (kg/liters)"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Petrol Tank Capacity</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.petrolTankCapacity}
+                      onChange={(e) => setFormData({ ...formData, petrolTankCapacity: e.target.value })}
+                      placeholder="Tank capacity (liters)"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mileage</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={formData.mileage}
+                      onChange={(e) => setFormData({ ...formData, mileage: e.target.value })}
+                      placeholder="Mileage (km/liter)"
                     />
                   </div>
                 </div>
@@ -291,7 +329,9 @@ export default function VehiclesPage() {
                     <TableHead>Vehicle Type</TableHead>
                     <TableHead>Driver Name</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Capacity</TableHead>
+                    <TableHead>Total Capacity</TableHead>
+                    <TableHead>Petrol Tank</TableHead>
+                    <TableHead>Mileage</TableHead>
                     <TableHead>Join Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -300,18 +340,24 @@ export default function VehiclesPage() {
                 <TableBody>
                   {vehicles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                         No vehicles added yet. Click "Add Vehicle" to get started.
                       </TableCell>
                     </TableRow>
                   ) : (
                     vehicles.map((vehicle) => (
-                      <TableRow key={vehicle.id}>
+                      <TableRow 
+                        key={vehicle.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(vehicle)}
+                      >
                         <TableCell className="font-medium">{vehicle.vehicleNumber}</TableCell>
                         <TableCell>{vehicle.vehicleType}</TableCell>
                         <TableCell>{vehicle.driverName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{vehicle.phone}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{vehicle.capacity || "N/A"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{vehicle.totalCapacity || "N/A"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{vehicle.petrolTankCapacity || "N/A"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{vehicle.mileage || "N/A"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{vehicle.joinDate}</TableCell>
                         <TableCell>
                           <span
@@ -324,7 +370,7 @@ export default function VehiclesPage() {
                             {vehicle.status === "active" ? "Active" : "Inactive"}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
+                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(vehicle)}>
                             <Edit2 size={16} />
                           </Button>
@@ -340,6 +386,66 @@ export default function VehiclesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* View Dialog */}
+        <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Vehicle Details</DialogTitle>
+              <DialogDescription>View complete vehicle information</DialogDescription>
+            </DialogHeader>
+            {viewingVehicle && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Vehicle Number</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.vehicleNumber}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Vehicle Type</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.vehicleType}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Driver Name</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.driverName}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Phone</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.phone}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Total Capacity</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.totalCapacity || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Petrol Tank Capacity</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.petrolTankCapacity || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Mileage</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.mileage || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Join Date</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.joinDate}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        viewingVehicle.status === "active"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}>
+                        {viewingVehicle.status === "active" ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )
