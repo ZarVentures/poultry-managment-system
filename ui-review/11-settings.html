@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Aziz Poultry</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🐔</span>
+      <span>Aziz Poultry</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link">📊 Dashboard</a>
+      <a href="#" class="sidebar-link">📦 Inventory</a>
+      <a href="#" class="sidebar-link">🛒 Purchases</a>
+      <a href="#" class="sidebar-link">📈 Sales</a>
+      <a href="#" class="sidebar-link">💰 Expenses</a>
+      <a href="#" class="sidebar-link">📊 Reports</a>
+      <a href="#" class="sidebar-link">👥 Farmers</a>
+      <a href="#" class="sidebar-link">🏪 Retailers</a>
+      <a href="#" class="sidebar-link">👤 Users</a>
+      <a href="#" class="sidebar-link active">⚙️ Settings</a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div style="font-size: 14px; font-weight: 600;">Welcome back!</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">admin@azizpoultry.com</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span style="font-size: 14px; color: var(--text-secondary);">Admin</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <h1>Settings</h1>
+      <p>System settings and configuration</p>
+    </div>
+
+    <div style="max-width: 800px;">
+      <!-- General Settings -->
+      <div class="card mb-6">
+        <div class="card-header">
+          <h5 class="card-title">General Settings</h5>
+          <p class="card-description">Basic system configuration</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="form-group">
+            <label class="form-label" for="currency">Currency</label>
+            <select id="currency" class="form-select">
+              <option value="INR" selected>Indian Rupee (₹)</option>
+              <option value="USD">US Dollar ($)</option>
+              <option value="EUR">Euro (€)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="date-format">Date Format</label>
+            <select id="date-format" class="form-select">
+              <option value="DD-MM-YYYY" selected>DD-MM-YYYY</option>
+              <option value="MM-DD-YYYY">MM-DD-YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="timezone">Timezone</label>
+            <select id="timezone" class="form-select">
+              <option value="IST" selected>India Standard Time (IST)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Display Settings -->
+      <div class="card mb-6">
+        <div class="card-header">
+          <h5 class="card-title">Display Settings</h5>
+          <p class="card-description">Appearance and theme preferences</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="form-group">
+            <label class="form-label" for="theme">Theme</label>
+            <select id="theme" class="form-select">
+              <option value="light" selected>Light</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto (System)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="language">Language</label>
+            <select id="language" class="form-select">
+              <option value="en" selected>English</option>
+              <option value="hi">Hindi</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="card mb-6">
+        <div class="card-header">
+          <h5 class="card-title">Notification Settings</h5>
+          <p class="card-description">Configure system notifications</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div>
+              <div style="font-weight: 500; margin-bottom: 4px;">Low Stock Alerts</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Receive notifications when inventory is low</div>
+            </div>
+            <input type="checkbox" checked style="width: 20px; height: 20px;">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div>
+              <div style="font-weight: 500; margin-bottom: 4px;">Purchase Order Reminders</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Get reminders for pending purchase orders</div>
+            </div>
+            <input type="checkbox" checked style="width: 20px; height: 20px;">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div>
+              <div style="font-weight: 500; margin-bottom: 4px;">Monthly Reports</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Receive monthly financial reports</div>
+            </div>
+            <input type="checkbox" style="width: 20px; height: 20px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

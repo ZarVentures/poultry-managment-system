@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales - Aziz Poultry</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🐔</span>
+      <span>Aziz Poultry</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link">📊 Dashboard</a>
+      <a href="#" class="sidebar-link">📦 Inventory</a>
+      <a href="#" class="sidebar-link">🛒 Purchases</a>
+      <a href="#" class="sidebar-link active">📈 Sales</a>
+      <a href="#" class="sidebar-link">💰 Expenses</a>
+      <a href="#" class="sidebar-link">📊 Reports</a>
+      <a href="#" class="sidebar-link">👥 Farmers</a>
+      <a href="#" class="sidebar-link">🏪 Retailers</a>
+      <a href="#" class="sidebar-link">👤 Users</a>
+      <a href="#" class="sidebar-link">⚙️ Settings</a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div style="font-size: 14px; font-weight: 600;">Welcome back!</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">admin@azizpoultry.com</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 14px; color: var(--text-secondary);">Date Range:</span>
+        <button class="btn btn-secondary" style="width: 200px; justify-content: space-between;">
+          <span>Dec 1 - Dec 23, 2024</span>
+          <span>📅</span>
+        </button>
+      </div>
+      <span style="font-size: 14px; color: var(--text-secondary); margin-left: 16px;">Admin</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>Sales Tracking</h1>
+          <p>Record and track customer sales and revenue</p>
+        </div>
+        <button class="btn btn-primary">+ Record Sale</button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Sales</div>
+        <div class="kpi-value">156</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-value">₹280,000</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Amount Received</div>
+        <div class="kpi-value" style="color: var(--success);">₹265,000</div>
+      </div>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Customer</th>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Amount</th>
+            <th>Payment Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight: 500;">INV-001</td>
+            <td>Retailer A</td>
+            <td>2024-12-20</td>
+            <td>Eggs</td>
+            <td>500</td>
+            <td>₹8,000</td>
+            <td><span class="badge badge-active">Paid</span></td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">👁️</div>
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">INV-002</td>
+            <td>Retailer B</td>
+            <td>2024-12-19</td>
+            <td>Meat</td>
+            <td>200</td>
+            <td>₹14,000</td>
+            <td><span class="badge badge-active">Paid</span></td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">👁️</div>
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">INV-003</td>
+            <td>Retailer C</td>
+            <td>2024-12-18</td>
+            <td>Eggs</td>
+            <td>300</td>
+            <td>₹4,800</td>
+            <td><span class="badge badge-pending">Pending</span></td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">👁️</div>
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">INV-004</td>
+            <td>Retailer A</td>
+            <td>2024-12-17</td>
+            <td>Chicks</td>
+            <td>100</td>
+            <td>₹5,000</td>
+            <td><span class="badge badge-partial">Partial</span></td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">👁️</div>
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+

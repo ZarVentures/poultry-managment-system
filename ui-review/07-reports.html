@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Aziz Poultry</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🐔</span>
+      <span>Aziz Poultry</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link">📊 Dashboard</a>
+      <a href="#" class="sidebar-link">📦 Inventory</a>
+      <a href="#" class="sidebar-link">🛒 Purchases</a>
+      <a href="#" class="sidebar-link">📈 Sales</a>
+      <a href="#" class="sidebar-link">💰 Expenses</a>
+      <a href="#" class="sidebar-link active">📊 Reports</a>
+      <a href="#" class="sidebar-link">👥 Farmers</a>
+      <a href="#" class="sidebar-link">🏪 Retailers</a>
+      <a href="#" class="sidebar-link">👤 Users</a>
+      <a href="#" class="sidebar-link">⚙️ Settings</a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div style="font-size: 14px; font-weight: 600;">Welcome back!</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">admin@azizpoultry.com</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-secondary" style="margin-right: 8px;">Filter</button>
+      <button class="btn btn-secondary">Export</button>
+      <span style="font-size: 14px; color: var(--text-secondary); margin-left: 16px;">Admin</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <h1>Financial Reports</h1>
+      <p>Comprehensive financial reports and analytics</p>
+    </div>
+
+    <!-- Top KPI Cards -->
+    <div class="grid grid-cols-4 mb-6">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Revenue (6M)</div>
+        <div class="kpi-value">₹168,000</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Expenses (6M)</div>
+        <div class="kpi-value">₹75,000</div>
+        <div class="kpi-subtext">Avg: ₹12,500/mo</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Profit (6M)</div>
+        <div class="kpi-value" style="color: var(--success);">₹93,000</div>
+        <div class="kpi-subtext">Margin: 55.4%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg Monthly Profit</div>
+        <div class="kpi-value">₹15,500</div>
+      </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Monthly Revenue vs Expenses</h5>
+          <p class="card-description">6-month comparison</p>
+        </div>
+        <div class="chart-placeholder">
+          Bar Chart: Revenue vs Expenses Comparison
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Monthly Net Profit</h5>
+          <p class="card-description">Profitability trends</p>
+        </div>
+        <div class="chart-placeholder">
+          Line Chart: Net Profit Trends
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Expense Distribution</h5>
+          <p class="card-description">By category</p>
+        </div>
+        <div class="chart-placeholder">
+          Pie Chart: Expense Distribution
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Sales Performance</h5>
+          <p class="card-description">By product type</p>
+        </div>
+        <div class="chart-placeholder">
+          Line Chart: Sales Performance (Eggs vs Meat)
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom KPI Cards -->
+    <div class="grid grid-cols-4">
+      <div class="kpi-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);">
+        <div class="kpi-label">Revenue Per Month</div>
+        <div class="kpi-value">₹28,000</div>
+      </div>
+      <div class="kpi-card" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);">
+        <div class="kpi-label">Expense Per Month</div>
+        <div class="kpi-value">₹12,500</div>
+      </div>
+      <div class="kpi-card" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);">
+        <div class="kpi-label">Profit Per Month</div>
+        <div class="kpi-value">₹15,500</div>
+      </div>
+      <div class="kpi-card" style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);">
+        <div class="kpi-label">ROI</div>
+        <div class="kpi-value">124%</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

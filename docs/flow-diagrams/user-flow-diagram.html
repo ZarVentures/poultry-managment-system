@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Flow Diagram - Aziz Poultry</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+            margin: 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #228B22;
+            border-bottom: 3px solid #228B22;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #323232;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+        .mermaid {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .screens-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .screen-card {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #228B22;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .screen-card h3 {
+            margin: 0 0 10px 0;
+            color: #228B22;
+            font-size: 16px;
+        }
+        .data-table {
+            margin-top: 30px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #228B22;
+            color: white;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐔 Aziz Poultry Farm Management System - User Flow Diagram</h1>
+        
+        <div class="info-box">
+            <strong>Total Screens Identified:</strong> 9
+        </div>
+        
+        <h2>User Flow Diagram</h2>
+        <div class="mermaid">
+flowchart TD
+    Start([User Starts]) --> Login[User Authentication System]
+    Login --> Dashboard{Dashboard Overview}
+
+    Dashboard --> Expense_Management["Expense Management"]
+    Dashboard --> Reports["Reports"]
+
+    Inventory_Management --> Purchase_Management
+    Inventory_Management --> Sales_Management
+    Purchase_Management --> Expense_Management
+    Sales_Management --> Reports
+    Expense_Management --> Reports
+    Reports --> Dashboard
+    User_Management --> Dashboard
+
+    style Start fill:#228B22,stroke:#166534,stroke-width:3px,color:#fff
+    style Login fill:#3b82f6,stroke:#1e40af,stroke-width:2px,color:#fff
+    style Dashboard fill:#10b981,stroke:#059669,stroke-width:3px,color:#fff
+    style Inventory_Management fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+    style Purchase_Management fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style Sales_Management fill:#dcfce7,stroke:#10b981,stroke-width:2px
+    style Expense_Management fill:#fee2e2,stroke:#ef4444,stroke-width:2px
+    style Reports fill:#e9d5ff,stroke:#a855f7,stroke-width:2px
+    style User_Management fill:#f3e8ff,stroke:#9333ea,stroke-width:2px
+        </div>
+        
+        <h2>Identified Screens</h2>
+        <div class="screens-list">
+            <div class="screen-card">
+                <h3>User Authentication System</h3>
+            </div>
+            <div class="screen-card">
+                <h3>Dashboard Overview</h3>
+            </div>
+            <div class="screen-card">
+                <h3>Godown Management</h3>
+            </div>
+            <div class="screen-card">
+                <h3>Purchase Order Management</h3>
+            </div>
+            <div class="screen-card">
+                <h3>Sales Tracking</h3>
+            </div>
+            <div class="screen-card">
+                <h3>Expense Management</h3>
+            </div>
+            <div class="screen-card">
+                <h3>Reports</h3>
+            </div>
+            <div class="screen-card">
+                <h3>Master Data Management</h3>
+            </div>
+            <div class="screen-card">
+                <h3>FR9: User Management</h3>
+            </div>
+        </div>
+        
+        <h2>Source Data</h2>
+<h3>Requirment Document</h3>
+<table border="1" class="dataframe data-table" id="table-Requirment-Document">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Sl No</th>
+      <th>Screen Name</th>
+      <th>Details</th>
+      <th>Rules Engine</th>
+      <th>Business Requirement</th>
+      <th>Functional Requirement</th>
+      <th>Phase #</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>NaN</td>
+      <td>User Authentication System</td>
+      <td>There are 2 user role in the system:\n1. Admin</td>
+      <td>NaN</td>
+      <td>1. Admin can have full access of the system</td>
+      <td>1. Login screen should contain\nPhone no as UID\nOTP recive \nEmail id field optional</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. Operator</td>
+      <td>NaN</td>
+      <td>2. Operator has limited access to the system</td>
+      <td>2. Only india no should be taken for login</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. OTP should go to given no, this otp should have for limited time</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>Dashboard Overview</td>
+      <td>1. initally this will show data from logged in date</td>
+      <td>NaN</td>
+      <td>1. initally this will show data from logged in date</td>
+      <td>1. It will show different information in multiple blocks like\na. Total Purchase qnt\nb Total Value rs\nc. Total Expense\nd. Net profit</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. Revenue Trends</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. Expense Breakdown</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>Godown Management</td>
+      <td>1. This page should contain complete information of the aziz godown</td>
+      <td>NaN</td>
+      <td>1. This page will be accessible to Admin only</td>
+      <td>1. List of all Goodown status  in tabular formate on current date</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. Admin can see the current status of the godown</td>
+      <td>8. Table should contain\nItem Type - bird\nQuantity\nOrder# bill no\nSupplier, \nPickup date\nTotal Value rs\nActions</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. somewhere it show comparision between today and yesterday status</td>
+      <td>5. Mini Dashboard to show with +- status from previous day\nTotal Quantity - bird\nTotal cage qnt\nTotal value rs \n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. New form button  \nItem Type - bird\nQuantity\nOrder# bill no\nSupplier, \nPickup date\nTotal Value rs\nNotes</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>Purchase Order Management</td>
+      <td>1. Admin has multiple sources to buy the birds\na. Farmer\nb. Big godown</td>
+      <td></td>
+      <td>1. Driver, goes to farmhouse or big godown with his truck. he loads the truck with cages. \n</td>
+      <td>This screen should contain: \n1, Left panel with all other pages\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. Birds put in a iron cage\na. Single cage weight 40kg with bird\nb. Single cage contains 15-16 birds</td>
+      <td>NaN</td>
+      <td>2. Each of the truck contains around 42 cages. There is bilty generated at the time of loading which contains no of cage, total weight, total bird count, total cost \n</td>
+      <td>2. A Welcome message at the left top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. Farm or godown Distance \na. from 30 km around the durg city</td>
+      <td>NaN</td>
+      <td>3. Delivery process, trucks deliver the cage direct to the reatailer shops</td>
+      <td>3. Logged in user details at right top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>4. Weight Loss\na. 1.5kg/ cage\nb. average cage weight 38.5kg</td>
+      <td>NaN</td>
+      <td>4. Remaining cages take to Aziz godown</td>
+      <td>4. New form button  \nOrder# bill no\nSupplier\nOrder date\nPickup date\nTotal purchase qt\nTotal bill amount\nPayment status</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Birds carries in vehicles\na. Mini Truck - 42 cages\nb. Medium Truck - 125 cages\nc. Large Truck - 250 cages</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Mini Dashboard to show\nTotal purchase (no)\nTotal Value(rs)\nTotal payment (rs)\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. List of all purchase in tabular formate on current</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>8. Table should contain\nOrder# bill no\nSupplier\nOrder date\nPickup date\nTotal purchase qt\nTotal bill amount\nPayment status\nActions</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>Sales Tracking</td>
+      <td>1. Sale is done into 3 ways \na. Through vehicle direct from Farm to retailer\nb. From Aziz godown after unloading the cage\nc. Aziz retailer shop</td>
+      <td>NaN</td>
+      <td>1. Driver, loads the bird cages from farmhouse or big godown and delivers the cage based on the order at retail shops in the city</td>
+      <td>This screen should contain: \n1, Left panel with all other pages\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. Driver gives the bill and accept the payment</td>
+      <td>2. A Welcome message at the left top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. Drive takes the reamining cages to aziz godown</td>
+      <td>3. Logged in user details at right top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>4. Retailers shop keepers come to godwon to purchase on wholesale rates</td>
+      <td>4. New form button  \nInvoice # bill no\nRetailer Shop\nSale date\nTotal Quantity \nTotal Invoice amount\nPayment status\nNotes</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Aziz retail shop also purchase from godown in wholesale rates</td>
+      <td>5. Mini Dashboard to show\nTotal sale (no)\nTotal Value(rs)\nTotal received payment (rs)\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. List of all sale in tabular formate on current</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>8. Table should contain\nInvoice # bill no\nRetailer Shop\nSale date\nTotal Quantity \nTotal Invoice amount\nPayment status\nActions</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>Expense Management</td>
+      <td>There are multiple expenses happens on regular basis\na. Labour payment\nb. Vehicle expenses\nc. Feed expenses\nd. Others</td>
+      <td>NaN</td>
+      <td>1. Admin can see the total expenses happening the company under different categories</td>
+      <td>This screen should contain: \n1, Left panel with all other pages\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. A Welcome message at the left top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. Logged in user details at right top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>4. New Expense button  \nDate\nCategory\nDescription\nAmount\nPayment method</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>Reports</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Mini Dashboard to show\nTotal Expense rs today\nTotal Expenses rs yesterday \nVariation + or -\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. List of all expense in tabular formate on current</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>8. Table should contain\nDate\nCategory\nDescription\nAmount\nPayment method \nActions</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>Master Data Management</td>
+      <td>1. This page contains details of all entities which are being used in the system\na, Farmer\nb. Retailers\nc. Trucks</td>
+      <td>NaN</td>
+      <td>1. Admin can add details of farmers, regular retailers and trucks</td>
+      <td>This screen should contain: \n1, Left panel with all other pages\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. He can see thier status also</td>
+      <td>2. A Welcome message at the left top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. Logged in user details at right top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>Farmer</td>
+      <td>4. Add Farmer button  \nName\nContact\nLocation\nTotal purchase rs \nLast purchase date\nAction</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Mini Dashboard to show\nTotal Farmers\nActive Farmers\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. List of all farmers in tabular formate on current</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>8. Table should contain\nName\nContact\nLocation\nTotal purchase rs \nLast purchase date\nNotes</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>Retailer</td>
+      <td>4. Add Retailer button  \nRetailer Name\nOwner Name\nContact\nAddress\nTotal sale rs \nLast sale date\nAction</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Mini Dashboard to show\nTotal Farmers\nActive Farmers\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. List of all farmers in tabular formate on current</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>8. Table should contain\nName\nContact\nLocation\nTotal purchase rs \nLast purchase date\nNotes</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>Trucks</td>
+      <td>4. Add New Truck button  \nVehicle Type \nVehicle No\nOwner Name\nDriver Name\nContact\nAddress\nTotal Capacity\nPetrol tank capacity \nMilage  \nAction</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Mini Dashboard to show\nTotal vehicle\nActive vehicle\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. List of all vehicle in tabular formate on current</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>8. Table should contain\nVehicle Type \nVehicle No\nOwner Name\nDriver Name\nContact\nAddress\nTotal Capacity\nPetrol tank capacity \nMilage  \nLast Trip date\nAction</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>FR9: User Management</td>
+      <td>New user can be added into the system</td>
+      <td>NaN</td>
+      <td>1. Admin can add more users and give him access level permission</td>
+      <td>This screen should contain: \n1, Left panel with all other pages\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2. A Welcome message at the left top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>3. Logged in user details at right top corner</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>4. Add User button  \nName\nRole\nStatus\nJoin Date\nLast Login \nAction</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>5. Mini Dashboard to show\nTotal user\nActive user\nAdmins\n</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>6. Filter date wise calendar option</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>7. List of all sale in tabular formate on current</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>8. Table should contain\nName\nRole\nStatus\nJoin Date\nLast Login \nAction</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table><br><br>
+<h3>User Mapping</h3>
+<table border="1" class="dataframe data-table" id="table-User-Mapping">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Sl No</th>
+      <th>User Type</th>
+      <th>Screens</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>NaN</td>
+      <td>Admin</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table><br><br>
+    </div>
+    
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+</body>
+</html>

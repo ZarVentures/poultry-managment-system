@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Aziz Poultry</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🐔</span>
+      <span>Aziz Poultry</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link active">📊 Dashboard</a>
+      <a href="#" class="sidebar-link">📦 Inventory</a>
+      <a href="#" class="sidebar-link">🛒 Purchases</a>
+      <a href="#" class="sidebar-link">📈 Sales</a>
+      <a href="#" class="sidebar-link">💰 Expenses</a>
+      <a href="#" class="sidebar-link">📊 Reports</a>
+      <a href="#" class="sidebar-link">👥 Farmers</a>
+      <a href="#" class="sidebar-link">🏪 Retailers</a>
+      <a href="#" class="sidebar-link">👤 Users</a>
+      <a href="#" class="sidebar-link">⚙️ Settings</a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div style="font-size: 14px; font-weight: 600;">Welcome back!</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">admin@azizpoultry.com</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span style="font-size: 14px; color: var(--text-secondary);">Admin</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <p>Welcome to your poultry farm management system</p>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-4 mb-6">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Birds</div>
+        <div class="kpi-value">5,240</div>
+        <div class="kpi-subtext">+5% from last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Revenue (MTD)</div>
+        <div class="kpi-value">₹28,000</div>
+        <div class="kpi-subtext">+12% from last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Expenses (MTD)</div>
+        <div class="kpi-value">₹12,500</div>
+        <div class="kpi-subtext">+8% from last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Net Profit (MTD)</div>
+        <div class="kpi-value" style="color: var(--success);">₹15,500</div>
+        <div class="kpi-subtext">+18% from last month</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-2 gap-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Revenue Trends</h5>
+          <p class="card-description">Monthly revenue by product type</p>
+        </div>
+        <div class="chart-placeholder">
+          Line Chart: Revenue Trends (Eggs vs Meat)
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Expense Breakdown</h5>
+          <p class="card-description">Distribution of expenses by category</p>
+        </div>
+        <div class="chart-placeholder">
+          Pie Chart: Expense Breakdown (Feed, Labor, Medicine, Other)
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

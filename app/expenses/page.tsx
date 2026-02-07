@@ -1,0 +1,419 @@
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Plus, Edit2, Trash2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useDateFilter } from "@/contexts/date-filter-context"
+
+interface Expense {
+  id: string
+  date: string
+  category: string
+  description: string
+  amount: number
+  paymentMethod: string
+  notes: string
+  receipt?: string
+}
+
+export default function ExpensesPage() {
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [mounted, setMounted] = useState(false)
+  const [showDialog, setShowDialog] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split("T")[0],
+    category: "feed",
+    description: "",
+    amount: "",
+    paymentMethod: "cash",
+    notes: "",
+  })
+  const { startDate, endDate } = useDateFilter()
+
+  useEffect(() => {
+    setMounted(true)
+    const saved = localStorage.getItem("expenses")
+    if (saved) {
+      setExpenses(JSON.parse(saved))
+    } else {
+      setExpenses([])
+    }
+  }, [])
+
+  const handleSave = () => {
+    if (!formData.description || !formData.amount) {
+      alert("Please fill all required fields")
+      return
+    }
+
+    if (editingId) {
+      setExpenses(
+        expenses.map((expense) =>
+          expense.id === editingId
+            ? {
+                ...expense,
+                date: formData.date,
+                category: formData.category,
+                description: formData.description,
+                amount: Number.parseFloat(formData.amount),
+                paymentMethod: formData.paymentMethod,
+                notes: formData.notes,
+              }
+            : expense,
+        ),
+      )
+    } else {
+      setExpenses([
+        ...expenses,
+        {
+          id: Date.now().toString(),
+          date: formData.date,
+          category: formData.category,
+          description: formData.description,
+          amount: Number.parseFloat(formData.amount),
+          paymentMethod: formData.paymentMethod,
+          notes: formData.notes,
+        },
+      ])
+    }
+
+    localStorage.setItem("expenses", JSON.stringify(expenses))
+    resetForm()
+    setShowDialog(false)
+  }
+
+  const resetForm = () => {
+    setFormData({
+      date: new Date().toISOString().split("T")[0],
+      category: "feed",
+      description: "",
+      amount: "",
+      paymentMethod: "cash",
+      notes: "",
+    })
+    setEditingId(null)
+  }
+
+  const handleEdit = (expense: Expense) => {
+    setEditingId(expense.id)
+    setFormData({
+      date: expense.date,
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount.toString(),
+      paymentMethod: expense.paymentMethod,
+      notes: expense.notes,
+    })
+    setShowDialog(true)
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this expense?")) {
+      const updated = expenses.filter((expense) => expense.id !== id)
+      setExpenses(updated)
+      localStorage.setItem("expenses", JSON.stringify(updated))
+    }
+  }
+
+  const categories = ["feed", "labor", "medicine", "equipment", "maintenance", "transportation", "other"]
+  const categoryEmojis: { [key: string]: string } = {
+    feed: "🌾",
+    labor: "👷",
+    medicine: "💊",
+    equipment: "🔧",
+    maintenance: "🔨",
+    transportation: "🚚",
+    other: "📋",
+  }
+
+  // Filter expenses based on date range
+  const filteredExpenses = useMemo(() => {
+    if (!startDate || !endDate) return expenses
+
+    return expenses.filter((expense) => {
+      const expenseDate = new Date(expense.date)
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      // Set time to start/end of day for proper comparison
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+      expenseDate.setHours(0, 0, 0, 0)
+
+      return expenseDate >= start && expenseDate <= end
+    })
+  }, [expenses, startDate, endDate])
+
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const categoryBreakdown = categories.map((cat) => ({
+    category: cat,
+    amount: filteredExpenses.filter((e) => e.category === cat).reduce((sum, e) => sum + e.amount, 0),
+  }))
+
+  if (!mounted) return null
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Expenses & Financial Tracking</h1>
+            <p className="text-muted-foreground">Track all farm expenses and costs</p>
+          </div>
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2" size={20} />
+                Record Expense
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{editingId ? "Edit Expense" : "Record New Expense"}</DialogTitle>
+                <DialogDescription>Enter expense details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) => setFormData({ ...formData, category: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {categoryEmojis[cat]} {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="What was this expense for?"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Payment Method</Label>
+                    <Select
+                      value={formData.paymentMethod}
+                      onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank">Bank Transfer</SelectItem>
+                        <SelectItem value="check">Check</SelectItem>
+                        <SelectItem value="card">Credit Card</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Input
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Additional notes"
+                  />
+                </div>
+
+                <Button onClick={handleSave} className="w-full">
+                  {editingId ? "Update" : "Record"} Expense
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">₹{totalExpenses}</div>
+              <p className="text-xs text-muted-foreground mt-1">{filteredExpenses.length} transactions</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                ₹
+                {filteredExpenses
+                  .filter((e) => {
+                    const expenseDate = new Date(e.date)
+                    const now = new Date()
+                    return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()
+                  })
+                  .reduce((sum, e) => sum + e.amount, 0)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Average Expense</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                ₹{filteredExpenses.length > 0 ? (totalExpenses / filteredExpenses.length).toFixed(2) : 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Category Breakdown</CardTitle>
+              <CardDescription>Total expenses by category</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {categoryBreakdown
+                  .filter((item) => item.amount > 0)
+                  .sort((a, b) => b.amount - a.amount)
+                  .map((item) => (
+                    <div key={item.category} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{categoryEmojis[item.category]}</span>
+                        <span className="capitalize font-medium">{item.category}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold">₹{item.amount}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {((item.amount / totalExpenses) * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Expenses</CardTitle>
+              <CardDescription>Latest expense transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {filteredExpenses
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 5)
+                  .map((expense) => (
+                    <div key={expense.id} className="flex justify-between items-start pb-3 border-b last:border-b-0">
+                      <div>
+                        <p className="font-medium flex items-center gap-2">
+                          <span>{categoryEmojis[expense.category]}</span>
+                          {expense.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{expense.date}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">₹{expense.amount}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{expense.paymentMethod}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Expenses</CardTitle>
+            <CardDescription>Complete list of all expenses</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredExpenses
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((expense) => (
+                      <TableRow key={expense.id}>
+                        <TableCell>{expense.date}</TableCell>
+                        <TableCell className="capitalize">{expense.category}</TableCell>
+                        <TableCell>{expense.description}</TableCell>
+                        <TableCell className="font-medium">₹{expense.amount}</TableCell>
+                        <TableCell className="capitalize">{expense.paymentMethod}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button variant="outline" size="icon" onClick={() => handleEdit(expense)}>
+                            <Edit2 size={16} />
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleDelete(expense.id)}>
+                            <Trash2 size={16} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  )
+}

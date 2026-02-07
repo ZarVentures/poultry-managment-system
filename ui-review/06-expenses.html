@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expenses - Aziz Poultry</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🐔</span>
+      <span>Aziz Poultry</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link">📊 Dashboard</a>
+      <a href="#" class="sidebar-link">📦 Inventory</a>
+      <a href="#" class="sidebar-link">🛒 Purchases</a>
+      <a href="#" class="sidebar-link">📈 Sales</a>
+      <a href="#" class="sidebar-link active">💰 Expenses</a>
+      <a href="#" class="sidebar-link">📊 Reports</a>
+      <a href="#" class="sidebar-link">👥 Farmers</a>
+      <a href="#" class="sidebar-link">🏪 Retailers</a>
+      <a href="#" class="sidebar-link">👤 Users</a>
+      <a href="#" class="sidebar-link">⚙️ Settings</a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div style="font-size: 14px; font-weight: 600;">Welcome back!</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">admin@azizpoultry.com</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 14px; color: var(--text-secondary);">Date Range:</span>
+        <button class="btn btn-secondary" style="width: 200px; justify-content: space-between;">
+          <span>Dec 1 - Dec 23, 2024</span>
+          <span>📅</span>
+        </button>
+      </div>
+      <span style="font-size: 14px; color: var(--text-secondary); margin-left: 16px;">Admin</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>Expense Management</h1>
+          <p>Track expenses by category with analytics</p>
+        </div>
+        <button class="btn btn-primary">+ Record Expense</button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Expenses</div>
+        <div class="kpi-value">₹125,000</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">This Month</div>
+        <div class="kpi-value">₹12,500</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Average Expense</div>
+        <div class="kpi-value">₹5,200</div>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="two-column">
+      <!-- Category Breakdown -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Category Breakdown</h5>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>🌾</span>
+              <span>Feed</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">₹56,250</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">45%</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>👷</span>
+              <span>Labor</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">₹31,250</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">25%</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>💊</span>
+              <span>Medicine</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">₹18,750</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">15%</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>📦</span>
+              <span>Other</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">₹18,750</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">15%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Expenses -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Recent Expenses</h5>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border);">
+            <div>
+              <div style="font-weight: 500; margin-bottom: 4px;">Feed Purchase</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">2024-12-20</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">₹5,000</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Cash</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border);">
+            <div>
+              <div style="font-weight: 500; margin-bottom: 4px;">Labor Wages</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">2024-12-19</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">₹3,500</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Bank</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border);">
+            <div>
+              <div style="font-weight: 500; margin-bottom: 4px;">Medicine</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">2024-12-18</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">₹2,000</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Cash</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="table-container" style="margin-top: 24px;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Payment Method</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2024-12-20</td>
+            <td>Feed</td>
+            <td>Corn feed purchase</td>
+            <td>₹5,000</td>
+            <td>Cash</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>2024-12-19</td>
+            <td>Labor</td>
+            <td>Monthly wages</td>
+            <td>₹3,500</td>
+            <td>Bank Transfer</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>2024-12-18</td>
+            <td>Medicine</td>
+            <td>Antibiotics</td>
+            <td>₹2,000</td>
+            <td>Cash</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+

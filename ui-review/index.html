@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aziz Poultry - UI Review</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      padding: 48px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+    }
+    .review-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .review-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .review-header h1 {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .review-header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+    .screens-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .screen-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .screen-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .screen-number {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .screen-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .screen-description {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="review-container">
+    <div class="review-header">
+      <h1>🐔 Aziz Poultry Farm Management System</h1>
+      <p>UI Review - Static HTML Screens</p>
+      <p style="font-size: 14px; margin-top: 8px;">Click on any screen to view the static HTML representation</p>
+    </div>
+
+    <div class="screens-grid">
+      <a href="01-login.html" class="screen-card">
+        <div class="screen-number">01</div>
+        <div class="screen-title">Login</div>
+        <div class="screen-description">User authentication and login page with demo credentials</div>
+      </a>
+
+      <a href="02-dashboard.html" class="screen-card">
+        <div class="screen-number">02</div>
+        <div class="screen-title">Dashboard</div>
+        <div class="screen-description">Main dashboard with KPIs, revenue trends, and expense breakdown</div>
+      </a>
+
+      <a href="03-inventory.html" class="screen-card">
+        <div class="screen-number">03</div>
+        <div class="screen-title">Inventory Management</div>
+        <div class="screen-description">Track birds, feed, and supplies with low stock alerts</div>
+      </a>
+
+      <a href="04-purchases.html" class="screen-card">
+        <div class="screen-number">04</div>
+        <div class="screen-title">Purchase Orders</div>
+        <div class="screen-description">Manage supplier orders and deliveries with status tracking</div>
+      </a>
+
+      <a href="05-sales.html" class="screen-card">
+        <div class="screen-number">05</div>
+        <div class="screen-title">Sales Tracking</div>
+        <div class="screen-description">Record and track customer sales and revenue</div>
+      </a>
+
+      <a href="06-expenses.html" class="screen-card">
+        <div class="screen-number">06</div>
+        <div class="screen-title">Expense Management</div>
+        <div class="screen-description">Track expenses by category with analytics</div>
+      </a>
+
+      <a href="07-reports.html" class="screen-card">
+        <div class="screen-number">07</div>
+        <div class="screen-title">Financial Reports</div>
+        <div class="screen-description">Comprehensive financial reports and analytics</div>
+      </a>
+
+      <a href="08-farmers.html" class="screen-card">
+        <div class="screen-number">08</div>
+        <div class="screen-title">Farmers Management</div>
+        <div class="screen-description">Manage farmer master data</div>
+      </a>
+
+      <a href="09-retailers.html" class="screen-card">
+        <div class="screen-number">09</div>
+        <div class="screen-title">Retailers Management</div>
+        <div class="screen-description">Manage retailer master data</div>
+      </a>
+
+      <a href="10-users.html" class="screen-card">
+        <div class="screen-number">10</div>
+        <div class="screen-title">User Management</div>
+        <div class="screen-description">Manage system users and roles</div>
+      </a>
+
+      <a href="11-settings.html" class="screen-card">
+        <div class="screen-number">11</div>
+        <div class="screen-title">Settings</div>
+        <div class="screen-description">System settings and configuration</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
+

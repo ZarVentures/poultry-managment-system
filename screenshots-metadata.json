@@ -1,0 +1,94 @@
+{
+  "baseUrl": "http://localhost:3002",
+  "screenshotsDir": "E:\\Personal Project\\aziz poultary\\screenshots",
+  "pages": [
+    {
+      "path": "/",
+      "name": "Login",
+      "description": "User authentication and login page",
+      "requiresAuth": false,
+      "filename": "01_Login.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\01_Login.png"
+    },
+    {
+      "path": "/dashboard",
+      "name": "Dashboard",
+      "description": "Main dashboard with KPIs, charts, and analytics",
+      "requiresAuth": true,
+      "filename": "02_Dashboard.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\02_Dashboard.png"
+    },
+    {
+      "path": "/inventory",
+      "name": "Inventory Management",
+      "description": "Track birds, feed, and supplies with date filtering",
+      "requiresAuth": true,
+      "filename": "03_Inventory_Management.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\03_Inventory_Management.png"
+    },
+    {
+      "path": "/purchases",
+      "name": "Purchase Orders",
+      "description": "Manage supplier orders and deliveries",
+      "requiresAuth": true,
+      "filename": "04_Purchase_Orders.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\04_Purchase_Orders.png"
+    },
+    {
+      "path": "/sales",
+      "name": "Sales Tracking",
+      "description": "Record and track customer sales and revenue",
+      "requiresAuth": true,
+      "filename": "05_Sales_Tracking.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\05_Sales_Tracking.png"
+    },
+    {
+      "path": "/expenses",
+      "name": "Expense Management",
+      "description": "Track expenses by category with analytics",
+      "requiresAuth": true,
+      "filename": "06_Expense_Management.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\06_Expense_Management.png"
+    },
+    {
+      "path": "/reports",
+      "name": "Financial Reports",
+      "description": "Comprehensive financial reports and analytics",
+      "requiresAuth": true,
+      "filename": "07_Financial_Reports.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\07_Financial_Reports.png"
+    },
+    {
+      "path": "/farmers",
+      "name": "Farmers Management",
+      "description": "Manage farmer master data",
+      "requiresAuth": true,
+      "filename": "08_Farmers_Management.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\08_Farmers_Management.png"
+    },
+    {
+      "path": "/retailers",
+      "name": "Retailers Management",
+      "description": "Manage retailer master data",
+      "requiresAuth": true,
+      "filename": "09_Retailers_Management.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\09_Retailers_Management.png"
+    },
+    {
+      "path": "/users",
+      "name": "User Management",
+      "description": "Manage system users and roles",
+      "requiresAuth": true,
+      "filename": "10_User_Management.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\10_User_Management.png"
+    },
+    {
+      "path": "/settings",
+      "name": "Settings",
+      "description": "System settings and configuration",
+      "requiresAuth": true,
+      "filename": "11_Settings.png",
+      "filepath": "E:\\Personal Project\\aziz poultary\\screenshots\\11_Settings.png"
+    }
+  ]
+}

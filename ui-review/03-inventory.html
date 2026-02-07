@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory - Aziz Poultry</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🐔</span>
+      <span>Aziz Poultry</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link">📊 Dashboard</a>
+      <a href="#" class="sidebar-link active">📦 Inventory</a>
+      <a href="#" class="sidebar-link">🛒 Purchases</a>
+      <a href="#" class="sidebar-link">📈 Sales</a>
+      <a href="#" class="sidebar-link">💰 Expenses</a>
+      <a href="#" class="sidebar-link">📊 Reports</a>
+      <a href="#" class="sidebar-link">👥 Farmers</a>
+      <a href="#" class="sidebar-link">🏪 Retailers</a>
+      <a href="#" class="sidebar-link">👤 Users</a>
+      <a href="#" class="sidebar-link">⚙️ Settings</a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div style="font-size: 14px; font-weight: 600;">Welcome back!</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">admin@azizpoultry.com</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 14px; color: var(--text-secondary);">Date Range:</span>
+        <button class="btn btn-secondary" style="width: 200px; justify-content: space-between;">
+          <span>Select date range</span>
+          <span>📅</span>
+        </button>
+      </div>
+      <span style="font-size: 14px; color: var(--text-secondary); margin-left: 16px;">Admin</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>Inventory Management</h1>
+          <p>Track birds, feed, and supplies</p>
+        </div>
+        <button class="btn btn-primary">+ Add Item</button>
+      </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="alert-card">
+      <div class="alert-title">⚠️ Low Stock Alert</div>
+      <ul class="alert-list">
+        <li>• Feed - Corn (45 kg remaining, min: 50 kg)</li>
+        <li>• Medicine - Antibiotics (2 units remaining, min: 5 units)</li>
+      </ul>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Item Type</th>
+            <th>Quantity</th>
+            <th>Unit</th>
+            <th>Min Stock</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight: 500;">Birds</td>
+            <td>5,240</td>
+            <td>pieces</td>
+            <td>5,000</td>
+            <td><span class="badge badge-active">In Stock</span></td>
+            <td class="text-muted">2024-12-20</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">Feed - Corn</td>
+            <td>45</td>
+            <td>kg</td>
+            <td>50</td>
+            <td><span class="badge badge-error">Low Stock</span></td>
+            <td class="text-muted">2024-12-18</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">Feed - Wheat</td>
+            <td>120</td>
+            <td>kg</td>
+            <td>50</td>
+            <td><span class="badge badge-active">In Stock</span></td>
+            <td class="text-muted">2024-12-19</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">Medicine - Antibiotics</td>
+            <td>2</td>
+            <td>units</td>
+            <td>5</td>
+            <td><span class="badge badge-error">Low Stock</span></td>
+            <td class="text-muted">2024-12-15</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">Medicine - Vitamins</td>
+            <td>15</td>
+            <td>units</td>
+            <td>10</td>
+            <td><span class="badge badge-active">In Stock</span></td>
+            <td class="text-muted">2024-12-21</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+

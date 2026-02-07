@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmers - Aziz Poultry</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🐔</span>
+      <span>Aziz Poultry</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link">📊 Dashboard</a>
+      <a href="#" class="sidebar-link">📦 Inventory</a>
+      <a href="#" class="sidebar-link">🛒 Purchases</a>
+      <a href="#" class="sidebar-link">📈 Sales</a>
+      <a href="#" class="sidebar-link">💰 Expenses</a>
+      <a href="#" class="sidebar-link">📊 Reports</a>
+      <a href="#" class="sidebar-link active">👥 Farmers</a>
+      <a href="#" class="sidebar-link">🏪 Retailers</a>
+      <a href="#" class="sidebar-link">👤 Users</a>
+      <a href="#" class="sidebar-link">⚙️ Settings</a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div style="font-size: 14px; font-weight: 600;">Welcome back!</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">admin@azizpoultry.com</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span style="font-size: 14px; color: var(--text-secondary);">Admin</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>Farmers Management</h1>
+          <p>Manage farmer master data</p>
+        </div>
+        <button class="btn btn-primary">+ Add Farmer</button>
+      </div>
+    </div>
+
+    <!-- Farmers Table -->
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Location</th>
+            <th>Total Purchases</th>
+            <th>Last Purchase</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight: 500;">Ahmed Khan</td>
+            <td>+91 98765 43210</td>
+            <td>Village A, District X</td>
+            <td>₹45,000</td>
+            <td class="text-muted">2024-12-15</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">Mohammed Ali</td>
+            <td>+91 98765 43211</td>
+            <td>Village B, District Y</td>
+            <td>₹32,500</td>
+            <td class="text-muted">2024-12-10</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">Rahul Singh</td>
+            <td>+91 98765 43212</td>
+            <td>Village C, District Z</td>
+            <td>₹28,000</td>
+            <td class="text-muted">2024-12-08</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 500;">Priya Patel</td>
+            <td>+91 98765 43213</td>
+            <td>Village D, District X</td>
+            <td>₹15,000</td>
+            <td class="text-muted">2024-12-05</td>
+            <td>
+              <div class="action-icons">
+                <div class="action-icon">✏️</div>
+                <div class="action-icon">🗑️</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+

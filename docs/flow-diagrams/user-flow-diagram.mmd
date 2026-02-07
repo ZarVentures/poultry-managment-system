@@ -1,0 +1,19 @@
+```mermaid
+flowchart TD
+    Start([Start]) --> Login[User Authentication System]
+    Login --> Dashboard{Dashboard Overview}
+
+    Dashboard --> Expense_Management["Expense Management"]
+    Dashboard --> Reports["Reports"]
+    Purchase_Management --> Expense_Management
+    Sales_Management --> Reports
+    Expense_Management --> Reports
+    Reports --> Dashboard
+
+    Reports --> Dashboard
+    User_Management --> Dashboard
+
+    style Start fill:#228B22,stroke:#166534,stroke-width:2px,color:#fff
+    style Login fill:#3b82f6,stroke:#1e40af,stroke-width:2px,color:#fff
+    style Dashboard fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
+```
