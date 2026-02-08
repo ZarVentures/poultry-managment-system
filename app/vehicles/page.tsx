@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2 } from "lucide-react"
+import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
 
 interface Vehicle {
   id: string
@@ -24,11 +25,14 @@ interface Vehicle {
   vehicleType: string
   driverName: string
   phone: string
+  ownerName?: string
+  address?: string
   totalCapacity: string
   petrolTankCapacity: string
   mileage: string
   joinDate: string
   status: "active" | "inactive"
+  note?: string
 }
 
 export default function VehiclesPage() {
@@ -38,16 +42,22 @@ export default function VehiclesPage() {
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingVehicle, setViewingVehicle] = useState<Vehicle | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showSearchFilter, setShowSearchFilter] = useState(false)
   const [formData, setFormData] = useState({
     vehicleNumber: "",
     vehicleType: "",
     driverName: "",
     phone: "",
+    ownerName: "",
+    address: "",
     totalCapacity: "",
     petrolTankCapacity: "",
     mileage: "",
     joinDate: new Date().toISOString().split("T")[0],
     status: "active" as "active" | "inactive",
+    note: "",
   })
 
   useEffect(() => {
@@ -86,11 +96,14 @@ export default function VehiclesPage() {
               vehicleType: formData.vehicleType,
               driverName: formData.driverName,
               phone: formData.phone,
+              ownerName: formData.ownerName,
+              address: formData.address,
               totalCapacity: formData.totalCapacity,
               petrolTankCapacity: formData.petrolTankCapacity,
               mileage: formData.mileage,
               joinDate: formData.joinDate,
               status: formData.status,
+              note: formData.note,
             }
           : vehicle,
       )
@@ -103,11 +116,14 @@ export default function VehiclesPage() {
         vehicleType: formData.vehicleType,
         driverName: formData.driverName,
         phone: formData.phone,
+        ownerName: formData.ownerName,
+        address: formData.address,
         totalCapacity: formData.totalCapacity,
         petrolTankCapacity: formData.petrolTankCapacity,
         mileage: formData.mileage,
         joinDate: formData.joinDate,
         status: formData.status,
+        note: formData.note,
       }
       const updated = [...vehicles, newVehicle]
       setVehicles(updated)
@@ -124,11 +140,14 @@ export default function VehiclesPage() {
       vehicleType: "",
       driverName: "",
       phone: "",
+      ownerName: "",
+      address: "",
       totalCapacity: "",
       petrolTankCapacity: "",
       mileage: "",
       joinDate: new Date().toISOString().split("T")[0],
       status: "active" as "active" | "inactive",
+      note: "",
     })
     setEditingId(null)
   }
@@ -140,11 +159,14 @@ export default function VehiclesPage() {
       vehicleType: vehicle.vehicleType,
       driverName: vehicle.driverName,
       phone: vehicle.phone,
+      ownerName: vehicle.ownerName || "",
+      address: vehicle.address || "",
       totalCapacity: vehicle.totalCapacity || "",
       petrolTankCapacity: vehicle.petrolTankCapacity || "",
       mileage: vehicle.mileage || "",
       joinDate: vehicle.joinDate || new Date().toISOString().split("T")[0],
       status: vehicle.status || "active",
+      note: vehicle.note || "",
     })
     setShowDialog(true)
   }
@@ -155,6 +177,50 @@ export default function VehiclesPage() {
       setVehicles(updated)
       localStorage.setItem("vehicles", JSON.stringify(updated))
     }
+  }
+
+  const handleView = (vehicle: Vehicle) => {
+    setViewingVehicle(vehicle)
+    setShowViewDialog(true)
+  }
+
+  const handleSort = () => {
+    if (sortOrder === null) {
+      setSortOrder("asc")
+    } else if (sortOrder === "asc") {
+      setSortOrder("desc")
+    } else {
+      setSortOrder(null)
+    }
+  }
+
+  const getFilteredAndSortedVehicles = () => {
+    let filtered = vehicles
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(
+        (vehicle) =>
+          vehicle.driverName.toLowerCase().includes(query) ||
+          vehicle.vehicleNumber.toLowerCase().includes(query),
+      )
+    }
+
+    // Apply sorting
+    if (sortOrder) {
+      filtered = [...filtered].sort((a, b) => {
+        const nameA = a.driverName.toLowerCase()
+        const nameB = b.driverName.toLowerCase()
+        if (sortOrder === "asc") {
+          return nameA.localeCompare(nameB)
+        } else {
+          return nameB.localeCompare(nameA)
+        }
+      })
+    }
+
+    return filtered
   }
 
   if (!mounted) return null
@@ -200,10 +266,8 @@ export default function VehiclesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Truck">Truck</SelectItem>
-                        <SelectItem value="Van">Van</SelectItem>
-                        <SelectItem value="Pickup">Pickup</SelectItem>
-                        <SelectItem value="Car">Car</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Mini Truck">Mini Truck</SelectItem>
+                        <SelectItem value="Pickup Van">Pickup Van</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -247,13 +311,20 @@ export default function VehiclesPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Total Capacity</Label>
-                    <Input
-                      type="number"
+                    <Label>Total Cage Capacity</Label>
+                    <Select
                       value={formData.totalCapacity}
-                      onChange={(e) => setFormData({ ...formData, totalCapacity: e.target.value })}
-                      placeholder="Total capacity (kg/liters)"
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, totalCapacity: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select cage capacity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="42">42</SelectItem>
+                        <SelectItem value="130">130</SelectItem>
+                        <SelectItem value="240">240</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Petrol Tank Capacity</Label>
@@ -266,6 +337,22 @@ export default function VehiclesPage() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label>Owner Name</Label>
+                    <Input
+                      value={formData.ownerName}
+                      onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                      placeholder="Owner name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Address</Label>
+                    <Input
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Vehicle address"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label>Mileage</Label>
                     <Input
                       type="number"
@@ -273,6 +360,15 @@ export default function VehiclesPage() {
                       value={formData.mileage}
                       onChange={(e) => setFormData({ ...formData, mileage: e.target.value })}
                       placeholder="Mileage (km/liter)"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Notes</Label>
+                    <Textarea
+                      value={formData.note}
+                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                      placeholder="Additional notes about the vehicle"
+                      rows={3}
                     />
                   </div>
                 </div>
@@ -290,7 +386,21 @@ export default function VehiclesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Vehicles</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{vehicles.length}</div>
+              <div className="text-3xl font-bold mb-3">{vehicles.length}</div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Truck:</span>
+                  <span className="font-medium">{vehicles.filter((v) => v.vehicleType === "Truck").length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mini Truck:</span>
+                  <span className="font-medium">{vehicles.filter((v) => v.vehicleType === "Mini Truck").length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Pickup Van:</span>
+                  <span className="font-medium">{vehicles.filter((v) => v.vehicleType === "Pickup Van").length}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -298,8 +408,28 @@ export default function VehiclesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Active Vehicles</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="text-3xl font-bold mb-3">
                 {vehicles.filter((v) => (v.status || "active") === "active").length}
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Truck:</span>
+                  <span className="font-medium">
+                    {vehicles.filter((v) => v.vehicleType === "Truck" && (v.status || "active") === "active").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mini Truck:</span>
+                  <span className="font-medium">
+                    {vehicles.filter((v) => v.vehicleType === "Mini Truck" && (v.status || "active") === "active").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Pickup Van:</span>
+                  <span className="font-medium">
+                    {vehicles.filter((v) => v.vehicleType === "Pickup Van" && (v.status || "active") === "active").length}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -308,8 +438,28 @@ export default function VehiclesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Inactive Vehicles</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="text-3xl font-bold mb-3">
                 {vehicles.filter((v) => (v.status || "active") === "inactive").length}
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Truck:</span>
+                  <span className="font-medium">
+                    {vehicles.filter((v) => v.vehicleType === "Truck" && (v.status || "active") === "inactive").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mini Truck:</span>
+                  <span className="font-medium">
+                    {vehicles.filter((v) => v.vehicleType === "Mini Truck" && (v.status || "active") === "inactive").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Pickup Van:</span>
+                  <span className="font-medium">
+                    {vehicles.filter((v) => v.vehicleType === "Pickup Van" && (v.status || "active") === "inactive").length}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -317,35 +467,81 @@ export default function VehiclesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Vehicles List</CardTitle>
-            <CardDescription>View and manage all vehicles</CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Vehicles List</CardTitle>
+                <CardDescription>View and manage all vehicles</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {showSearchFilter && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search by driver name or vehicle number..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-64"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSearchQuery("")
+                        setShowSearchFilter(false)
+                      }}
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                )}
+                {!showSearchFilter && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSearchFilter(true)}
+                  >
+                    <Search className="mr-2" size={16} />
+                    Filter
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Vehicle Number</TableHead>
+                    <TableHead>Vehicle No</TableHead>
                     <TableHead>Vehicle Type</TableHead>
-                    <TableHead>Driver Name</TableHead>
+                    <TableHead>Owner Name</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 lg:px-3"
+                        onClick={handleSort}
+                      >
+                        Driver Name
+                        {sortOrder === null && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                        {sortOrder === "asc" && <ArrowUp className="ml-2 h-4 w-4" />}
+                        {sortOrder === "desc" && <ArrowDown className="ml-2 h-4 w-4" />}
+                      </Button>
+                    </TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Total Capacity</TableHead>
-                    <TableHead>Petrol Tank</TableHead>
-                    <TableHead>Mileage</TableHead>
                     <TableHead>Join Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vehicles.length === 0 ? (
+                  {getFilteredAndSortedVehicles().length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                        No vehicles added yet. Click "Add Vehicle" to get started.
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                        {searchQuery ? "No vehicles found matching your search." : "No vehicles added yet. Click \"Add Vehicle\" to get started."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    vehicles.map((vehicle) => (
+                    getFilteredAndSortedVehicles().map((vehicle) => (
                       <TableRow 
                         key={vehicle.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -353,11 +549,9 @@ export default function VehiclesPage() {
                       >
                         <TableCell className="font-medium">{vehicle.vehicleNumber}</TableCell>
                         <TableCell>{vehicle.vehicleType}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{vehicle.ownerName || "N/A"}</TableCell>
                         <TableCell>{vehicle.driverName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{vehicle.phone}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{vehicle.totalCapacity || "N/A"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{vehicle.petrolTankCapacity || "N/A"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{vehicle.mileage || "N/A"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{vehicle.joinDate}</TableCell>
                         <TableCell>
                           <span
@@ -414,7 +608,15 @@ export default function VehiclesPage() {
                     <div className="text-sm font-medium">{viewingVehicle.phone}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Total Capacity</Label>
+                    <Label className="text-muted-foreground">Owner Name</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.ownerName || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-muted-foreground">Address</Label>
+                    <div className="text-sm font-medium">{viewingVehicle.address || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Total Cage Capacity</Label>
                     <div className="text-sm font-medium">{viewingVehicle.totalCapacity || "N/A"}</div>
                   </div>
                   <div className="space-y-2">
@@ -441,6 +643,12 @@ export default function VehiclesPage() {
                       </span>
                     </div>
                   </div>
+                  {viewingVehicle.note && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-muted-foreground">Notes</Label>
+                      <div className="text-sm font-medium whitespace-pre-wrap">{viewingVehicle.note}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

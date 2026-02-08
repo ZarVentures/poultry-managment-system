@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2 } from "lucide-react"
+import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
 
 interface Farmer {
   id: string
@@ -27,6 +28,7 @@ interface Farmer {
   birdCount: number
   joinDate: string
   status: "active" | "inactive"
+  note?: string
 }
 
 export default function FarmersPage() {
@@ -36,12 +38,16 @@ export default function FarmersPage() {
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingFarmer, setViewingFarmer] = useState<Farmer | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showSearchFilter, setShowSearchFilter] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     address: "",
     joinDate: new Date().toISOString().split("T")[0],
     status: "active" as "active" | "inactive",
+    note: "",
   })
 
   useEffect(() => {
@@ -78,6 +84,7 @@ export default function FarmersPage() {
               address: formData.address,
               joinDate: formData.joinDate,
               status: formData.status,
+              note: formData.note,
             }
           : farmer,
       )
@@ -93,6 +100,7 @@ export default function FarmersPage() {
         birdCount: 0, // Keep for backward compatibility
         joinDate: formData.joinDate,
         status: formData.status,
+        note: formData.note,
       }
       const updated = [...farmers, newFarmer]
       setFarmers(updated)
@@ -110,6 +118,7 @@ export default function FarmersPage() {
       address: "",
       joinDate: new Date().toISOString().split("T")[0],
       status: "active" as "active" | "inactive",
+      note: "",
     })
     setEditingId(null)
   }
@@ -122,6 +131,7 @@ export default function FarmersPage() {
       address: farmer.address,
       joinDate: farmer.joinDate || new Date().toISOString().split("T")[0],
       status: farmer.status || "active",
+      note: farmer.note || "",
     })
     setShowDialog(true)
   }
@@ -137,6 +147,45 @@ export default function FarmersPage() {
   const handleView = (farmer: Farmer) => {
     setViewingFarmer(farmer)
     setShowViewDialog(true)
+  }
+
+  const handleSort = () => {
+    if (sortOrder === null) {
+      setSortOrder("asc")
+    } else if (sortOrder === "asc") {
+      setSortOrder("desc")
+    } else {
+      setSortOrder(null)
+    }
+  }
+
+  const getFilteredAndSortedFarmers = () => {
+    let filtered = farmers
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(
+        (farmer) =>
+          farmer.name.toLowerCase().includes(query) ||
+          (farmer.phone && farmer.phone.toLowerCase().includes(query)),
+      )
+    }
+
+    // Apply sorting
+    if (sortOrder) {
+      filtered = [...filtered].sort((a, b) => {
+        const nameA = a.name.toLowerCase()
+        const nameB = b.name.toLowerCase()
+        if (sortOrder === "asc") {
+          return nameA.localeCompare(nameB)
+        } else {
+          return nameB.localeCompare(nameA)
+        }
+      })
+    }
+
+    return filtered
   }
 
   if (!mounted) return null
@@ -210,6 +259,15 @@ export default function FarmersPage() {
                       placeholder="Farm address"
                   />
                 </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Note</Label>
+                    <Textarea
+                      value={formData.note}
+                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                      placeholder="Additional notes about the farmer"
+                      rows={3}
+                    />
+                  </div>
               </div>
                 <Button onClick={handleSave} className="w-full">
                   {editingId ? "Update" : "Add"} Farmer
@@ -252,15 +310,63 @@ export default function FarmersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Farmers List</CardTitle>
-            <CardDescription>View and manage all farmers</CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Farmers List</CardTitle>
+                <CardDescription>View and manage all farmers</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {showSearchFilter && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search by name or phone..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-64"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSearchQuery("")
+                        setShowSearchFilter(false)
+                      }}
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                )}
+                {!showSearchFilter && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSearchFilter(true)}
+                  >
+                    <Search className="mr-2" size={16} />
+                    Filter
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 lg:px-3"
+                        onClick={handleSort}
+                      >
+                        Name
+                        {sortOrder === null && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                        {sortOrder === "asc" && <ArrowUp className="ml-2 h-4 w-4" />}
+                        {sortOrder === "desc" && <ArrowDown className="ml-2 h-4 w-4" />}
+                      </Button>
+                    </TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Address</TableHead>
                     <TableHead>Join Date</TableHead>
@@ -268,14 +374,14 @@ export default function FarmersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {farmers.length === 0 ? (
+                  {getFilteredAndSortedFarmers().length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        No farmers added yet. Click "Add Farmer" to get started.
+                        {searchQuery ? "No farmers found matching your search." : "No farmers added yet. Click \"Add Farmer\" to get started."}
                       </TableCell>
                     </TableRow>
         ) : (
-          farmers.map((farmer) => (
+          getFilteredAndSortedFarmers().map((farmer) => (
                       <TableRow 
                         key={farmer.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -340,6 +446,12 @@ export default function FarmersPage() {
                       </span>
                     </div>
                   </div>
+                  {viewingFarmer.note && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-muted-foreground">Note</Label>
+                      <div className="text-sm font-medium whitespace-pre-wrap">{viewingFarmer.note}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

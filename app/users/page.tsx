@@ -338,7 +338,7 @@ export default function UsersPage() {
 
   const rolePermissions: { [key: string]: string[] } = {
     admin: ["All features", "User management", "System settings", "Reports & analytics"],
-    operator: ["Inventory management", "Sales & purchases", "Expense tracking", "View reports"],
+    operator: ["Godown management", "Purchase management", "Sales management", "Expense tracking", "Mortality management"],
   }
 
   if (!mounted) return null
