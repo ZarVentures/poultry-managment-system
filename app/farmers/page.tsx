@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
+import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X, Download, Printer } from "lucide-react"
+import { DateRangeFilter } from "@/components/date-range-filter"
 
 interface Farmer {
   id: string
@@ -29,6 +30,7 @@ interface Farmer {
   joinDate: string
   status: "active" | "inactive"
   note?: string
+  farmhouseName?: string
 }
 
 export default function FarmersPage() {
@@ -40,7 +42,8 @@ export default function FarmersPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showSearchFilter, setShowSearchFilter] = useState(false)
+  const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -48,6 +51,7 @@ export default function FarmersPage() {
     joinDate: new Date().toISOString().split("T")[0],
     status: "active" as "active" | "inactive",
     note: "",
+    farmhouseName: "",
   })
 
   useEffect(() => {
@@ -85,6 +89,7 @@ export default function FarmersPage() {
               joinDate: formData.joinDate,
               status: formData.status,
               note: formData.note,
+              farmhouseName: formData.farmhouseName,
             }
           : farmer,
       )
@@ -101,6 +106,7 @@ export default function FarmersPage() {
         joinDate: formData.joinDate,
         status: formData.status,
         note: formData.note,
+        farmhouseName: formData.farmhouseName,
       }
       const updated = [...farmers, newFarmer]
       setFarmers(updated)
@@ -119,6 +125,7 @@ export default function FarmersPage() {
       joinDate: new Date().toISOString().split("T")[0],
       status: "active" as "active" | "inactive",
       note: "",
+      farmhouseName: "",
     })
     setEditingId(null)
   }
@@ -132,6 +139,7 @@ export default function FarmersPage() {
       joinDate: farmer.joinDate || new Date().toISOString().split("T")[0],
       status: farmer.status || "active",
       note: farmer.note || "",
+      farmhouseName: farmer.farmhouseName || "",
     })
     setShowDialog(true)
   }
@@ -162,6 +170,21 @@ export default function FarmersPage() {
   const getFilteredAndSortedFarmers = () => {
     let filtered = farmers
 
+    // Apply date range filter
+    if (dateRangeStart && dateRangeEnd) {
+      const start = new Date(dateRangeStart)
+      const end = new Date(dateRangeEnd)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+
+      filtered = filtered.filter((farmer) => {
+        if (!farmer.joinDate) return false
+        const joinDate = new Date(farmer.joinDate)
+        joinDate.setHours(0, 0, 0, 0)
+        return joinDate >= start && joinDate <= end
+      })
+    }
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
@@ -188,6 +211,147 @@ export default function FarmersPage() {
     return filtered
   }
 
+  const filteredFarmers = useMemo(() => getFilteredAndSortedFarmers(), [farmers, dateRangeStart, dateRangeEnd, searchQuery, sortOrder])
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+  }
+
+  const handleDownloadPDF = () => {
+    const filtered = getFilteredAndSortedFarmers()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Farmers Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Farmers List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Farmers:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Farmer House Name</th>
+                <th>Farmer Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(farmer => `
+                <tr>
+                  <td>${farmer.farmhouseName || "N/A"}</td>
+                  <td>${farmer.name}</td>
+                  <td>${farmer.phone}</td>
+                  <td>${farmer.address || "N/A"}</td>
+                  <td>${farmer.joinDate}</td>
+                  <td>${(farmer.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
+  const handlePrintReport = () => {
+    const filtered = getFilteredAndSortedFarmers()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Farmers Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Farmers List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Farmers:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Farmer House Name</th>
+                <th>Farmer Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(farmer => `
+                <tr>
+                  <td>${farmer.farmhouseName || "N/A"}</td>
+                  <td>${farmer.name}</td>
+                  <td>${farmer.phone}</td>
+                  <td>${farmer.address || "N/A"}</td>
+                  <td>${farmer.joinDate}</td>
+                  <td>${(farmer.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
   if (!mounted) return null
 
   return (
@@ -202,7 +366,7 @@ export default function FarmersPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                Add Farmer
+                Add New Farmer
         </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -213,11 +377,19 @@ export default function FarmersPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Name *</Label>
+                    <Label>Farmer Name *</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Farmer name"
+                  />
+                </div>
+                  <div className="space-y-2">
+                    <Label>Farmhouse Name</Label>
+                  <Input
+                    value={formData.farmhouseName}
+                    onChange={(e) => setFormData({ ...formData, farmhouseName: e.target.value })}
+                      placeholder="Farmhouse name"
                   />
                 </div>
                   <div className="space-y-2">
@@ -315,37 +487,49 @@ export default function FarmersPage() {
                 <CardTitle>Farmers List</CardTitle>
                 <CardDescription>View and manage all farmers</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                {showSearchFilter && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <DateRangeFilter
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Filter:</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Search by name or phone..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64"
+                      className="w-[200px]"
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSearchQuery("")
-                        setShowSearchFilter(false)
-                      }}
-                    >
-                      <X size={16} />
-                    </Button>
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSearchQuery("")}
+                        className="h-10 w-10"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
                   </div>
-                )}
-                {!showSearchFilter && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSearchFilter(true)}
-                  >
-                    <Search className="mr-2" size={16} />
-                    Filter
-                  </Button>
-                )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                >
+                  <Download className="mr-2" size={16} />
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintReport}
+                >
+                  <Printer className="mr-2" size={16} />
+                  Print Report
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -354,6 +538,7 @@ export default function FarmersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Farmer House Name</TableHead>
                     <TableHead>
                       <Button
                         variant="ghost"
@@ -361,7 +546,7 @@ export default function FarmersPage() {
                         className="h-8 px-2 lg:px-3"
                         onClick={handleSort}
                       >
-                        Name
+                        Farmer Name
                         {sortOrder === null && <ArrowUpDown className="ml-2 h-4 w-4" />}
                         {sortOrder === "asc" && <ArrowUp className="ml-2 h-4 w-4" />}
                         {sortOrder === "desc" && <ArrowDown className="ml-2 h-4 w-4" />}
@@ -370,27 +555,40 @@ export default function FarmersPage() {
                     <TableHead>Phone</TableHead>
                     <TableHead>Address</TableHead>
                     <TableHead>Join Date</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getFilteredAndSortedFarmers().length === 0 ? (
+                  {filteredFarmers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? "No farmers found matching your search." : "No farmers added yet. Click \"Add Farmer\" to get started."}
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        {searchQuery || (dateRangeStart && dateRangeEnd) ? "No farmers found matching your filters." : "No farmers added yet. Click \"Add New Farmer\" to get started."}
                       </TableCell>
                     </TableRow>
         ) : (
-          getFilteredAndSortedFarmers().map((farmer) => (
+          filteredFarmers.map((farmer) => (
                       <TableRow 
                         key={farmer.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(farmer)}
                       >
+                        <TableCell className="text-sm text-muted-foreground">{farmer.farmhouseName || "N/A"}</TableCell>
                         <TableCell className="font-medium">{farmer.name}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.phone}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.address || "N/A"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.joinDate}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              (farmer.status || "active") === "active"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {(farmer.status || "active") === "active" ? "Active" : "Inactive"}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(farmer)}>
                             <Edit2 size={16} />
@@ -419,8 +617,12 @@ export default function FarmersPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Name</Label>
+                    <Label className="text-muted-foreground">Farmer Name</Label>
                     <div className="text-sm font-medium">{viewingFarmer.name}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Farmhouse Name</Label>
+                    <div className="text-sm font-medium">{viewingFarmer.farmhouseName || "N/A"}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Phone</Label>

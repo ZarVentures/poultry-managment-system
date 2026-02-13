@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -29,46 +30,117 @@ interface Farmer {
   joinDate: string
 }
 
+interface Vehicle {
+  id: string
+  vehicleNumber: string
+  vehicleType: string
+  driverName: string
+  phone: string
+  status: "active" | "inactive"
+}
+
 interface PurchaseOrder {
   id: string
-  orderNumber: string
-  supplier: string
-  date: string
-  description: string
-  birdQuantity: number
-  cageQuantity: number
-  unitCost: number
-  totalValue: number
-  status: "pending" | "picked up" | "cancel"
+  purchaseInvoiceNo: string
+  purchaseDate: string
+  farmerName: string
+  farmerMobile: string
+  farmLocation: string
+  vehicleNo: string
+  purchaseType: "Cash" | "Credit"
   notes: string
+  birdType: string
+  numberOfCages: number
+  numberOfBirds: number
+  ratePerKg: number
+  averageWeight: number
+  totalWeight: number
+  totalAmount: number
+  transportCharges: number
+  loadingCharges: number
+  commission: number
+  otherCharges: number
+  deductions: number
+  totalInvoice: number
+  advancePaid: number
+  outstandingPayment: number
+  paymentMode: string
+  totalPaymentMade: number
+  balanceAmount: number
+  dueDate: string
+  // Legacy fields for backward compatibility
+  orderNumber?: string
+  supplier?: string
+  date?: string
+  description?: string
+  birdQuantity?: number
+  cageQuantity?: number
+  unitCost?: number
+  totalValue?: number
+  status?: "pending" | "picked up" | "cancel"
 }
 
 export default function PurchasesPage() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([])
   const [farmers, setFarmers] = useState<Farmer[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingOrder, setViewingOrder] = useState<PurchaseOrder | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<{
-    supplier: string
-    date: string
-    description: string
-    birdQuantity: string
-    cageQuantity: string
-    unitCost: string
-    status: "pending" | "picked up" | "cancel"
+    purchaseInvoiceNo: string
+    purchaseDate: string
+    farmerName: string
+    farmerMobile: string
+    farmLocation: string
+    vehicleNo: string
+    purchaseType: "Cash" | "Credit"
     notes: string
+    birdType: string
+    numberOfBirds: string
+    averageWeight: string
+    totalWeight: string
+    ratePerKg: string
+    totalAmount: string
+    transportCharges: string
+    loadingCharges: string
+    commission: string
+    otherCharges: string
+    deductions: string
+    advancePaid: string
+    paymentMode: string
+    balanceAmount: string
+    dueDate: string
   }>({
-    supplier: "",
-    date: new Date().toISOString().split("T")[0],
-    description: "",
-    birdQuantity: "",
-    cageQuantity: "",
-    unitCost: "",
-    status: "pending",
+    purchaseInvoiceNo: "",
+    purchaseDate: new Date().toISOString().split("T")[0],
+    farmerName: "",
+    farmerMobile: "",
+    farmLocation: "",
+    vehicleNo: "",
+    purchaseType: "Cash",
     notes: "",
+    birdType: "",
+    numberOfCages: "",
+    numberOfBirds: "",
+    ratePerKg: "",
+    averageWeight: "",
+    totalWeight: "",
+    totalAmount: "",
+    transportCharges: "",
+    loadingCharges: "",
+    commission: "",
+    otherCharges: "",
+    deductions: "",
+    totalInvoice: "",
+    advancePaid: "",
+    outstandingPayment: "",
+    paymentMode: "",
+    totalPaymentMade: "",
+    balanceAmount: "",
+    dueDate: "",
   })
   const { startDate, endDate } = useDateFilter()
 
@@ -79,33 +151,90 @@ export default function PurchasesPage() {
     const savedFarmers = localStorage.getItem("farmers")
     if (savedFarmers) {
       setFarmers(JSON.parse(savedFarmers))
-    } else {
-      // Default farmers if none exist
-      setFarmers([
-        {
-          id: "1",
-          name: "Ahmed Khan",
-          email: "ahmed@example.com",
-          phone: "+91 98765 43210",
-          address: "Village A, District X",
-          birdCount: 0,
-          joinDate: "2024-01-15",
-        },
-        {
-          id: "2",
-          name: "Mohammed Ali",
-          email: "mohammed@example.com",
-          phone: "+91 98765 43211",
-          address: "Village B, District Y",
-          birdCount: 0,
-          joinDate: "2024-02-20",
-        },
-      ])
+    }
+
+    // Load vehicles for vehicle dropdown
+    const savedVehicles = localStorage.getItem("vehicles")
+    if (savedVehicles) {
+      const parsedVehicles = JSON.parse(savedVehicles)
+      setVehicles(parsedVehicles.filter((v: Vehicle) => v.status === "active"))
     }
 
     // Fetch purchase orders from API
     fetchOrders()
   }, [])
+
+  // Auto-fill farmer mobile and farm location when farmer is selected
+  useEffect(() => {
+    if (formData.farmerName) {
+      const selectedFarmer = farmers.find((f) => f.name === formData.farmerName)
+      if (selectedFarmer) {
+        setFormData((prev) => ({
+          ...prev,
+          farmerMobile: selectedFarmer.phone || "",
+          farmLocation: selectedFarmer.address || "",
+        }))
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        farmerMobile: "",
+        farmLocation: "",
+      }))
+    }
+  }, [formData.farmerName, farmers])
+
+  // Auto-calculate total weight
+  const totalWeight = useMemo(() => {
+    const birds = Number.parseFloat(formData.numberOfBirds) || 0
+    const avgWeight = Number.parseFloat(formData.averageWeight) || 0
+    return birds * avgWeight
+  }, [formData.numberOfBirds, formData.averageWeight])
+
+  // Auto-calculate total amount
+  const totalAmount = useMemo(() => {
+    const weight = totalWeight
+    const rate = Number.parseFloat(formData.ratePerKg) || 0
+    return weight * rate
+  }, [totalWeight, formData.ratePerKg])
+
+  // Auto-calculate total invoice (Total Amount + Charges - Deductions)
+  const totalInvoice = useMemo(() => {
+    const total = totalAmount
+    const transport = Number.parseFloat(formData.transportCharges) || 0
+    const loading = Number.parseFloat(formData.loadingCharges) || 0
+    const commission = Number.parseFloat(formData.commission) || 0
+    const other = Number.parseFloat(formData.otherCharges) || 0
+    const deductions = Number.parseFloat(formData.deductions) || 0
+    
+    return total + transport + loading + commission + other - deductions
+  }, [totalAmount, formData.transportCharges, formData.loadingCharges, formData.commission, formData.otherCharges, formData.deductions])
+
+  // Auto-calculate outstanding payment (Total Invoice - Advance Paid)
+  const outstandingPayment = useMemo(() => {
+    const invoice = totalInvoice
+    const advance = Number.parseFloat(formData.advancePaid) || 0
+    return invoice - advance
+  }, [totalInvoice, formData.advancePaid])
+
+  // Auto-calculate balance amount (Outstanding Payment - Total Payment Made)
+  const balanceAmount = useMemo(() => {
+    const outstanding = outstandingPayment
+    const paymentMade = Number.parseFloat(formData.totalPaymentMade) || 0
+    return outstanding - paymentMade
+  }, [outstandingPayment, formData.totalPaymentMade])
+
+  // Update calculated fields when dependencies change
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      totalWeight: totalWeight.toFixed(2),
+      totalAmount: totalAmount.toFixed(2),
+      totalInvoice: totalInvoice.toFixed(2),
+      outstandingPayment: outstandingPayment.toFixed(2),
+      balanceAmount: balanceAmount.toFixed(2),
+    }))
+  }, [totalWeight, totalAmount, totalInvoice, outstandingPayment, balanceAmount])
 
   const fetchOrders = async () => {
     try {
@@ -129,16 +258,11 @@ export default function PurchasesPage() {
     }
   }
 
-  // Calculate total value automatically
-  const totalValue = useMemo(() => {
-    const birds = Number.parseFloat(formData.birdQuantity) || 0
-    const cost = Number.parseFloat(formData.unitCost) || 0
-    return birds * cost
-  }, [formData.birdQuantity, formData.unitCost])
 
   const handleSave = async () => {
-    if (!formData.supplier || !formData.description || !formData.birdQuantity || !formData.unitCost) {
-      alert("Please fill all required fields")
+    // Only validate mandatory fields (marked with *)
+    if (!formData.purchaseInvoiceNo || !formData.purchaseDate || !formData.farmerName || !formData.numberOfCages || !formData.numberOfBirds || !formData.ratePerKg) {
+      alert("Please fill all required fields (marked with *)")
       return
     }
 
@@ -149,14 +273,33 @@ export default function PurchasesPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          supplier: formData.supplier,
-          date: formData.date,
-          description: formData.description,
-          birdQuantity: formData.birdQuantity,
-          cageQuantity: formData.cageQuantity || 0,
-          unitCost: formData.unitCost,
-          status: formData.status,
-          notes: formData.notes,
+          purchaseInvoiceNo: formData.purchaseInvoiceNo,
+          purchaseDate: formData.purchaseDate,
+          farmerName: formData.farmerName,
+          farmerMobile: formData.farmerMobile || "",
+          farmLocation: formData.farmLocation || "",
+          vehicleNo: formData.vehicleNo || "",
+          purchaseType: formData.purchaseType || "Cash",
+          notes: formData.notes || "",
+          birdType: formData.birdType || "",
+          numberOfCages: Number.parseFloat(formData.numberOfCages) || 0,
+          numberOfBirds: Number.parseFloat(formData.numberOfBirds) || 0,
+          ratePerKg: Number.parseFloat(formData.ratePerKg) || 0,
+          averageWeight: formData.averageWeight ? Number.parseFloat(formData.averageWeight) : 0,
+          totalWeight: formData.totalWeight ? Number.parseFloat(formData.totalWeight) : 0,
+          totalAmount: formData.totalAmount ? Number.parseFloat(formData.totalAmount) : 0,
+          transportCharges: formData.transportCharges ? Number.parseFloat(formData.transportCharges) : 0,
+          loadingCharges: formData.loadingCharges ? Number.parseFloat(formData.loadingCharges) : 0,
+          commission: formData.commission ? Number.parseFloat(formData.commission) : 0,
+          otherCharges: formData.otherCharges ? Number.parseFloat(formData.otherCharges) : 0,
+          deductions: formData.deductions ? Number.parseFloat(formData.deductions) : 0,
+          totalInvoice: formData.totalInvoice ? Number.parseFloat(formData.totalInvoice) : 0,
+          advancePaid: formData.advancePaid ? Number.parseFloat(formData.advancePaid) : 0,
+          outstandingPayment: formData.outstandingPayment ? Number.parseFloat(formData.outstandingPayment) : 0,
+          paymentMode: formData.paymentMode || "",
+          totalPaymentMade: formData.totalPaymentMade ? Number.parseFloat(formData.totalPaymentMade) : 0,
+          balanceAmount: formData.balanceAmount ? Number.parseFloat(formData.balanceAmount) : 0,
+          dueDate: formData.dueDate || "",
         }),
       })
 
@@ -178,14 +321,33 @@ export default function PurchasesPage() {
 
   const resetForm = () => {
     setFormData({
-      supplier: "",
-      date: new Date().toISOString().split("T")[0],
-      description: "",
-      birdQuantity: "",
-      cageQuantity: "",
-      unitCost: "",
-      status: "pending",
-      notes: "",
+      purchaseInvoiceNo: "",
+      purchaseDate: new Date().toISOString().split("T")[0],
+      farmerName: "",
+      farmerMobile: "",
+      farmLocation: "",
+      vehicleNo: "",
+      purchaseType: "Cash",
+    notes: "",
+    birdType: "",
+    numberOfCages: "",
+    numberOfBirds: "",
+    ratePerKg: "",
+    averageWeight: "",
+    totalWeight: "",
+    totalAmount: "",
+    transportCharges: "",
+    loadingCharges: "",
+    commission: "",
+    otherCharges: "",
+    deductions: "",
+    totalInvoice: "",
+    advancePaid: "",
+    outstandingPayment: "",
+    paymentMode: "",
+    totalPaymentMade: "",
+    balanceAmount: "",
+    dueDate: "",
     })
     setEditingId(null)
   }
@@ -193,14 +355,33 @@ export default function PurchasesPage() {
   const handleEdit = (order: PurchaseOrder) => {
     setEditingId(order.id)
     setFormData({
-      supplier: order.supplier,
-      date: order.date,
-      description: order.description,
-      birdQuantity: order.birdQuantity.toString(),
-      cageQuantity: order.cageQuantity.toString(),
-      unitCost: order.unitCost.toString(),
-      status: order.status,
-      notes: order.notes,
+      purchaseInvoiceNo: order.purchaseInvoiceNo || order.orderNumber || "",
+      purchaseDate: order.purchaseDate || order.date || new Date().toISOString().split("T")[0],
+      farmerName: order.farmerName || order.supplier || "",
+      farmerMobile: order.farmerMobile || "",
+      farmLocation: order.farmLocation || "",
+      vehicleNo: order.vehicleNo || "",
+      purchaseType: order.purchaseType || "Cash",
+      notes: order.notes || "",
+      birdType: order.birdType || "",
+      numberOfCages: order.numberOfCages?.toString() || order.cageQuantity?.toString() || "",
+      numberOfBirds: order.numberOfBirds?.toString() || order.birdQuantity?.toString() || "",
+      ratePerKg: order.ratePerKg?.toString() || order.unitCost?.toString() || "",
+      averageWeight: order.averageWeight?.toString() || "",
+      totalWeight: order.totalWeight?.toString() || "",
+      totalAmount: order.totalAmount?.toString() || order.totalValue?.toString() || "",
+      transportCharges: order.transportCharges?.toString() || "",
+      loadingCharges: order.loadingCharges?.toString() || "",
+      commission: order.commission?.toString() || "",
+      otherCharges: order.otherCharges?.toString() || "",
+      deductions: order.deductions?.toString() || "",
+      totalInvoice: order.totalInvoice?.toString() || "",
+      advancePaid: order.advancePaid?.toString() || "",
+      outstandingPayment: order.outstandingPayment?.toString() || "",
+      paymentMode: order.paymentMode || "",
+      totalPaymentMade: order.totalPaymentMade?.toString() || "",
+      balanceAmount: order.balanceAmount?.toString() || "",
+      dueDate: order.dueDate || "",
     })
     setShowDialog(true)
   }
@@ -223,7 +404,7 @@ export default function PurchasesPage() {
     if (!startDate || !endDate) return orders
 
     return orders.filter((order) => {
-      const orderDate = new Date(order.date)
+      const orderDate = new Date(order.purchaseDate || order.date || "")
       const start = new Date(startDate)
       const end = new Date(endDate)
       start.setHours(0, 0, 0, 0)
@@ -265,129 +446,360 @@ export default function PurchasesPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                New Order
+                New Purchase
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{editingId ? "Edit Order" : "Create Purchase Order"}</DialogTitle>
-                <DialogDescription>Enter order details</DialogDescription>
+                <DialogTitle>{editingId ? "Edit Purchase Order" : "Create Purchase Order"}</DialogTitle>
+                <DialogDescription>Enter purchase order details</DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Supplier Name *</Label>
-                    <Select
-                      value={formData.supplier}
-                      onValueChange={(value) => setFormData({ ...formData, supplier: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {farmers.length === 0 ? (
-                          <SelectItem value="" disabled>No farmers available. Add farmers first.</SelectItem>
-                        ) : (
-                          farmers.map((farmer) => (
-                            <SelectItem key={farmer.id} value={farmer.name}>
-                              {farmer.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Order Date *</Label>
-                    <Input
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Status *</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="picked up">Picked Up</SelectItem>
-                        <SelectItem value="cancel">Cancel</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              <div className="space-y-6">
+                {/* Section 1: Header Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Section 1: Header Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Purchase Invoice No. *</Label>
+                        <Input
+                          value={formData.purchaseInvoiceNo}
+                          onChange={(e) => setFormData({ ...formData, purchaseInvoiceNo: e.target.value })}
+                          placeholder="Enter invoice number"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Purchase Date *</Label>
+                        <Input
+                          type="date"
+                          value={formData.purchaseDate}
+                          onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Farmer Name *</Label>
+                        <Select
+                          value={formData.farmerName}
+                          onValueChange={(value) => setFormData({ ...formData, farmerName: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select farmer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {farmers.length === 0 ? (
+                              <SelectItem value="" disabled>No farmers available. Add farmers first.</SelectItem>
+                            ) : (
+                              farmers.map((farmer) => (
+                                <SelectItem key={farmer.id} value={farmer.name}>
+                                  {farmer.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Farmer Mobile</Label>
+                        <Input
+                          value={formData.farmerMobile}
+                          readOnly
+                          className="bg-muted"
+                          placeholder="Auto-filled"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Farm Location</Label>
+                        <Input
+                          value={formData.farmLocation}
+                          readOnly
+                          className="bg-muted"
+                          placeholder="Auto-filled"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Vehicle No</Label>
+                        <Select
+                          value={formData.vehicleNo}
+                          onValueChange={(value) => setFormData({ ...formData, vehicleNo: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select vehicle" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vehicles.length === 0 ? (
+                              <SelectItem value="" disabled>No vehicles available</SelectItem>
+                            ) : (
+                              vehicles.map((vehicle) => (
+                                <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
+                                  {vehicle.vehicleNumber}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Purchase Type *</Label>
+                        <Select
+                          value={formData.purchaseType}
+                          onValueChange={(value: "Cash" | "Credit") => setFormData({ ...formData, purchaseType: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Cash">Cash</SelectItem>
+                            <SelectItem value="Credit">Credit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Notes</Label>
+                        <Textarea
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="Additional notes"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="space-y-2">
-                  <Label>Description *</Label>
-                  <Input
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Item description"
-                  />
-                </div>
+                {/* Section 2: Bird Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Section 2: Bird Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Bird Type</Label>
+                        <Select
+                          value={formData.birdType}
+                          onValueChange={(value) => setFormData({ ...formData, birdType: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select bird type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Broiler">Broiler</SelectItem>
+                            <SelectItem value="Layer">Layer</SelectItem>
+                            <SelectItem value="Desi">Desi</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Number of Cages *</Label>
+                        <Input
+                          type="number"
+                          value={formData.numberOfCages}
+                          onChange={(e) => setFormData({ ...formData, numberOfCages: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Number of Birds *</Label>
+                        <Input
+                          type="number"
+                          value={formData.numberOfBirds}
+                          onChange={(e) => setFormData({ ...formData, numberOfBirds: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Rate per Kg *</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.ratePerKg}
+                          onChange={(e) => setFormData({ ...formData, ratePerKg: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Average Bird Weight (Kg)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.averageWeight}
+                          onChange={(e) => setFormData({ ...formData, averageWeight: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Total Weight</Label>
+                        <Input
+                          type="text"
+                          value={formData.totalWeight ? `${formData.totalWeight} Kg` : ""}
+                          readOnly
+                          className="bg-muted font-semibold"
+                          placeholder="Auto-calculated"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Total Amount</Label>
+                        <Input
+                          type="text"
+                          value={formData.totalAmount ? `₹${Number.parseFloat(formData.totalAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
+                          readOnly
+                          className="bg-muted font-semibold"
+                          placeholder="Auto-calculated"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Bird Quantity *</Label>
-                    <Input
-                      type="number"
-                      value={formData.birdQuantity}
-                      onChange={(e) => setFormData({ ...formData, birdQuantity: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cage Quantity</Label>
-                    <Input
-                      type="number"
-                      value={formData.cageQuantity}
-                      onChange={(e) => setFormData({ ...formData, cageQuantity: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Unit Cost *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.unitCost}
-                      onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
+                {/* Section 3: Charges */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Section 3: Charges</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Transport Charges</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.transportCharges}
+                          onChange={(e) => setFormData({ ...formData, transportCharges: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Loading Charges</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.loadingCharges}
+                          onChange={(e) => setFormData({ ...formData, loadingCharges: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Commission</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.commission}
+                          onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Other Charges</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.otherCharges}
+                          onChange={(e) => setFormData({ ...formData, otherCharges: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Deductions</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.deductions}
+                          onChange={(e) => setFormData({ ...formData, deductions: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="space-y-2">
-                  <Label>Total Value</Label>
-                  <Input
-                    type="text"
-                    value={`₹${totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    readOnly
-                    className="bg-muted font-semibold"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Auto-calculated: Bird Quantity × Unit Cost
-                  </p>
-                </div>
+                {/* Section 4: Payment */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Section 4: Payment</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Total Invoice</Label>
+                        <Input
+                          type="text"
+                          value={formData.totalInvoice ? `₹${Number.parseFloat(formData.totalInvoice).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
+                          readOnly
+                          className="bg-muted font-semibold"
+                          placeholder="Auto-calculated"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Advance Paid</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.advancePaid}
+                          onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Outstanding Payment</Label>
+                        <Input
+                          type="text"
+                          value={formData.outstandingPayment ? `₹${Number.parseFloat(formData.outstandingPayment).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
+                          readOnly
+                          className="bg-muted font-semibold"
+                          placeholder="Auto-calculated"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Payment Mode</Label>
+                        <Select
+                          value={formData.paymentMode}
+                          onValueChange={(value) => setFormData({ ...formData, paymentMode: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Cash">Cash</SelectItem>
+                            <SelectItem value="Credit">Credit</SelectItem>
+                            <SelectItem value="Online">Online</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Total Payment Made</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.totalPaymentMade}
+                          onChange={(e) => setFormData({ ...formData, totalPaymentMade: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Balance Amount</Label>
+                        <Input
+                          type="text"
+                          value={formData.balanceAmount ? `₹${Number.parseFloat(formData.balanceAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
+                          readOnly
+                          className="bg-muted font-semibold"
+                          placeholder="Auto-calculated"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="space-y-2">
-                  <Label>Notes</Label>
-                  <Input
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Additional notes"
-                  />
+                <div className="flex justify-end gap-4">
+                  <Button variant="outline" onClick={() => setShowDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave}>
+                    {editingId ? "Update" : "Create"} Purchase Order
+                  </Button>
                 </div>
-
-                <Button onClick={handleSave} className="w-full">
-                  {editingId ? "Update" : "Create"} Order
-                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -415,7 +827,7 @@ export default function PurchasesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">₹{filteredOrders.reduce((sum, o) => sum + o.totalValue, 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div className="text-3xl font-bold">₹{filteredOrders.reduce((sum, o) => sum + (o.totalAmount || o.totalValue || 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </CardContent>
           </Card>
         </div>
@@ -430,22 +842,23 @@ export default function PurchasesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order #</TableHead>
-                    <TableHead>Supplier</TableHead>
+                    <TableHead>Purchase Invoice No.</TableHead>
+                    <TableHead>Farmer Name</TableHead>
                     <TableHead>Order Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Bird Qty</TableHead>
+                    <TableHead>Rate per Kg</TableHead>
                     <TableHead>Cage Qty</TableHead>
+                    <TableHead>Bird Qty</TableHead>
+                    <TableHead>Average Bird Weight (Kg)</TableHead>
                     <TableHead>Total Value</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Purchase Type</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                        No purchase orders found. Click "New Order" to create one.
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                        No purchase orders found. Click "New Purchase" to create one.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -455,18 +868,23 @@ export default function PurchasesPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(order)}
                       >
-                        <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                        <TableCell>{order.supplier}</TableCell>
-                        <TableCell>{order.date}</TableCell>
-                        <TableCell>{order.description}</TableCell>
-                        <TableCell>{order.birdQuantity.toLocaleString()}</TableCell>
-                        <TableCell>{order.cageQuantity.toLocaleString()}</TableCell>
-                        <TableCell className="font-semibold">₹{order.totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="font-medium">{order.purchaseInvoiceNo || order.orderNumber || "N/A"}</TableCell>
+                        <TableCell>{order.farmerName || order.supplier || "N/A"}</TableCell>
+                        <TableCell>{order.purchaseDate || order.date || "N/A"}</TableCell>
+                        <TableCell>₹{(order.ratePerKg || order.unitCost || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell>{(order.numberOfCages || order.cageQuantity || 0).toLocaleString()}</TableCell>
+                        <TableCell>{(order.numberOfBirds || order.birdQuantity || 0).toLocaleString()}</TableCell>
+                        <TableCell>{(order.averageWeight || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="font-semibold">₹{(order.totalAmount || order.totalValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              (order.purchaseType || "Cash") === "Cash"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            }`}
                           >
-                            {formatStatus(order.status)}
+                            {order.purchaseType || "Cash"}
                           </span>
                         </TableCell>
                         <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>

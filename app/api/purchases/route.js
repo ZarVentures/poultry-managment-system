@@ -35,22 +35,59 @@ export async function GET() {
 /**
  * POST /api/purchases
  * Creates a new purchase order
- * Body: { supplier, date, description, birdQuantity, cageQuantity, unitCost, status, notes }
+ * Body: { purchaseInvoiceNo, purchaseDate, farmerName, ... }
  */
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { supplier, date, description, birdQuantity, cageQuantity, unitCost, status, notes } = body;
+    const {
+      purchaseInvoiceNo,
+      purchaseDate,
+      farmerName,
+      farmerMobile,
+      farmLocation,
+      vehicleNo,
+      purchaseType,
+      notes,
+      birdType,
+      numberOfCages,
+      numberOfBirds,
+      ratePerKg,
+      averageWeight,
+      totalWeight,
+      totalAmount,
+      transportCharges,
+      loadingCharges,
+      commission,
+      otherCharges,
+      deductions,
+      totalInvoice,
+      advancePaid,
+      outstandingPayment,
+      paymentMode,
+      totalPaymentMade,
+      balanceAmount,
+      dueDate,
+      // Legacy fields for backward compatibility
+      supplier,
+      date,
+      description,
+      birdQuantity,
+      cageQuantity,
+      unitCost,
+      status,
+    } = body;
 
-    // Validate required fields
-    if (!supplier || !date || !description || birdQuantity === undefined || unitCost === undefined) {
-      return Response.json(
-        { error: 'Validation error', message: 'Missing required fields' },
-        { status: 400 }
-      );
+    // Validate required fields (new structure)
+    if (!purchaseInvoiceNo || !purchaseDate || !farmerName || numberOfCages === undefined || numberOfBirds === undefined || ratePerKg === undefined) {
+      // Try legacy fields for backward compatibility
+      if (!supplier || !date || !description || birdQuantity === undefined || unitCost === undefined) {
+        return Response.json(
+          { error: 'Validation error', message: 'Missing required fields' },
+          { status: 400 }
+        );
+      }
     }
-
-    const totalValue = (parseFloat(birdQuantity) || 0) * (parseFloat(unitCost) || 0);
     
     // Generate order number
     const db = getDatabase();
@@ -69,21 +106,31 @@ export async function POST(request) {
           return;
         }
 
-        const orderNumber = `PO-${String((row.count || 0) + 1).padStart(3, '0')}`;
+        const orderNumber = purchaseInvoiceNo || `PO-${String((row.count || 0) + 1).padStart(3, '0')}`;
+
+        // Use new fields if available, otherwise fall back to legacy fields
+        const finalSupplier = farmerName || supplier || '';
+        const finalDate = purchaseDate || date || '';
+        const finalDescription = description || `${birdType || ''} - ${numberOfBirds || birdQuantity || 0} birds`.trim();
+        const finalBirdQuantity = parseInt(numberOfBirds || birdQuantity) || 0;
+        const finalCageQuantity = parseInt(numberOfCages || cageQuantity) || 0;
+        const finalUnitCost = parseFloat(ratePerKg || unitCost) || 0;
+        const finalTotalValue = parseFloat(totalAmount || (finalBirdQuantity * finalUnitCost)) || 0;
+        const finalStatus = status || 'pending';
 
         db.run(
           `INSERT INTO purchases (orderNumber, supplier, date, description, birdQuantity, cageQuantity, unitCost, totalValue, status, notes) 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             orderNumber,
-            supplier.trim(),
-            date,
-            description.trim(),
-            parseInt(birdQuantity) || 0,
-            parseInt(cageQuantity) || 0,
-            parseFloat(unitCost) || 0,
-            totalValue,
-            status || 'pending',
+            finalSupplier.trim(),
+            finalDate,
+            finalDescription.trim(),
+            finalBirdQuantity,
+            finalCageQuantity,
+            finalUnitCost,
+            finalTotalValue,
+            finalStatus,
             notes?.trim() || null,
           ],
           function(err) {
@@ -100,18 +147,89 @@ export async function POST(request) {
               db.get('SELECT * FROM purchases WHERE id = ?', [this.lastID], (err, row) => {
                 if (err) {
                   console.error('Error fetching created purchase:', err.message);
+                  // Return with new field structure
+                  const createdOrder = {
+                    id: this.lastID,
+                    purchaseInvoiceNo: purchaseInvoiceNo || orderNumber,
+                    purchaseDate: purchaseDate || finalDate,
+                    farmerName: farmerName || finalSupplier,
+                    farmerMobile: farmerMobile || '',
+                    farmLocation: farmLocation || '',
+                    vehicleNo: vehicleNo || '',
+                    purchaseType: purchaseType || 'Cash',
+                    notes: notes || '',
+                    birdType: birdType || '',
+                    numberOfCages: numberOfCages || finalCageQuantity,
+                    numberOfBirds: numberOfBirds || finalBirdQuantity,
+                    ratePerKg: ratePerKg || finalUnitCost,
+                    averageWeight: averageWeight || 0,
+                    totalWeight: totalWeight || 0,
+                    totalAmount: totalAmount || finalTotalValue,
+                    transportCharges: transportCharges || 0,
+                    loadingCharges: loadingCharges || 0,
+                    commission: commission || 0,
+                    otherCharges: otherCharges || 0,
+                    deductions: deductions || 0,
+                    totalInvoice: totalInvoice || 0,
+                    advancePaid: advancePaid || 0,
+                    outstandingPayment: outstandingPayment || 0,
+                    paymentMode: paymentMode || '',
+                    totalPaymentMade: totalPaymentMade || 0,
+                    balanceAmount: balanceAmount || 0,
+                    dueDate: dueDate || '',
+                    // Legacy fields for compatibility
+                    orderNumber: orderNumber,
+                    supplier: finalSupplier,
+                    date: finalDate,
+                    description: finalDescription,
+                    birdQuantity: finalBirdQuantity,
+                    cageQuantity: finalCageQuantity,
+                    unitCost: finalUnitCost,
+                    totalValue: finalTotalValue,
+                    status: finalStatus,
+                  };
                   resolve(
                     Response.json(
                       {
                         success: true,
                         message: 'Purchase order created successfully',
-                        data: { id: this.lastID, orderNumber, supplier, date, description, birdQuantity, cageQuantity, unitCost, totalValue, status, notes },
+                        data: createdOrder,
                       },
                       { status: 201 }
                     )
                   );
                 } else {
-                  resolve(Response.json({ success: true, data: row }, { status: 201 }));
+                  // Return with new field structure
+                  const createdOrder = {
+                    ...row,
+                    purchaseInvoiceNo: purchaseInvoiceNo || row.orderNumber,
+                    purchaseDate: purchaseDate || row.date,
+                    farmerName: farmerName || row.supplier,
+                    farmerMobile: farmerMobile || '',
+                    farmLocation: farmLocation || '',
+                    vehicleNo: vehicleNo || '',
+                    purchaseType: purchaseType || 'Cash',
+                    birdType: birdType || '',
+                    numberOfCages: numberOfCages || row.cageQuantity || 0,
+                    numberOfBirds: numberOfBirds || row.birdQuantity || 0,
+                    ratePerKg: ratePerKg || row.unitCost || 0,
+                    averageWeight: averageWeight || 0,
+                    totalWeight: totalWeight || 0,
+                    totalAmount: totalAmount || row.totalValue || 0,
+                    transportCharges: transportCharges || 0,
+                    loadingCharges: loadingCharges || 0,
+                    commission: commission || 0,
+                    otherCharges: otherCharges || 0,
+                    deductions: deductions || 0,
+                    totalInvoice: totalInvoice || 0,
+                    advancePaid: advancePaid || 0,
+                    outstandingPayment: outstandingPayment || 0,
+                    paymentMode: paymentMode || '',
+                    totalPaymentMade: totalPaymentMade || 0,
+                    balanceAmount: balanceAmount || 0,
+                    dueDate: dueDate || '',
+                  };
+                  resolve(Response.json({ success: true, data: createdOrder }, { status: 201 }));
                 }
               });
             }

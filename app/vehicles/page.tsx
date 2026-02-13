@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
+import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X, Download, Printer } from "lucide-react"
+import { DateRangeFilter } from "@/components/date-range-filter"
 
 interface Vehicle {
   id: string
@@ -44,7 +45,8 @@ export default function VehiclesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showSearchFilter, setShowSearchFilter] = useState(false)
+  const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
   const [formData, setFormData] = useState({
     vehicleNumber: "",
     vehicleType: "",
@@ -197,6 +199,21 @@ export default function VehiclesPage() {
   const getFilteredAndSortedVehicles = () => {
     let filtered = vehicles
 
+    // Apply date range filter
+    if (dateRangeStart && dateRangeEnd) {
+      const start = new Date(dateRangeStart)
+      const end = new Date(dateRangeEnd)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+
+      filtered = filtered.filter((vehicle) => {
+        if (!vehicle.joinDate) return false
+        const joinDate = new Date(vehicle.joinDate)
+        joinDate.setHours(0, 0, 0, 0)
+        return joinDate >= start && joinDate <= end
+      })
+    }
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
@@ -223,6 +240,151 @@ export default function VehiclesPage() {
     return filtered
   }
 
+  const filteredVehicles = useMemo(() => getFilteredAndSortedVehicles(), [vehicles, dateRangeStart, dateRangeEnd, searchQuery, sortOrder])
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+  }
+
+  const handleDownloadPDF = () => {
+    const filtered = getFilteredAndSortedVehicles()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Vehicles Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Vehicles List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Vehicles:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Vehicle No</th>
+                <th>Vehicle Type</th>
+                <th>Owner Name</th>
+                <th>Driver Name</th>
+                <th>Phone</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(vehicle => `
+                <tr>
+                  <td>${vehicle.vehicleNumber}</td>
+                  <td>${vehicle.vehicleType}</td>
+                  <td>${vehicle.ownerName || "N/A"}</td>
+                  <td>${vehicle.driverName}</td>
+                  <td>${vehicle.phone}</td>
+                  <td>${vehicle.joinDate || "N/A"}</td>
+                  <td>${(vehicle.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
+  const handlePrintReport = () => {
+    const filtered = getFilteredAndSortedVehicles()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Vehicles Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Vehicles List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Vehicles:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Vehicle No</th>
+                <th>Vehicle Type</th>
+                <th>Owner Name</th>
+                <th>Driver Name</th>
+                <th>Phone</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(vehicle => `
+                <tr>
+                  <td>${vehicle.vehicleNumber}</td>
+                  <td>${vehicle.vehicleType}</td>
+                  <td>${vehicle.ownerName || "N/A"}</td>
+                  <td>${vehicle.driverName}</td>
+                  <td>${vehicle.phone}</td>
+                  <td>${vehicle.joinDate || "N/A"}</td>
+                  <td>${(vehicle.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
   if (!mounted) return null
 
   return (
@@ -237,7 +399,7 @@ export default function VehiclesPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                Add Vehicle
+                Add New Vehicle
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -472,37 +634,49 @@ export default function VehiclesPage() {
                 <CardTitle>Vehicles List</CardTitle>
                 <CardDescription>View and manage all vehicles</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                {showSearchFilter && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <DateRangeFilter
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Filter:</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Search by driver name or vehicle number..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64"
+                      className="w-[200px]"
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSearchQuery("")
-                        setShowSearchFilter(false)
-                      }}
-                    >
-                      <X size={16} />
-                    </Button>
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSearchQuery("")}
+                        className="h-10 w-10"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
                   </div>
-                )}
-                {!showSearchFilter && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSearchFilter(true)}
-                  >
-                    <Search className="mr-2" size={16} />
-                    Filter
-                  </Button>
-                )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                >
+                  <Download className="mr-2" size={16} />
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintReport}
+                >
+                  <Printer className="mr-2" size={16} />
+                  Print Report
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -534,14 +708,14 @@ export default function VehiclesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getFilteredAndSortedVehicles().length === 0 ? (
+                  {filteredVehicles.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? "No vehicles found matching your search." : "No vehicles added yet. Click \"Add Vehicle\" to get started."}
+                        {searchQuery || (dateRangeStart && dateRangeEnd) ? "No vehicles found matching your filters." : "No vehicles added yet. Click \"Add New Vehicle\" to get started."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    getFilteredAndSortedVehicles().map((vehicle) => (
+                    filteredVehicles.map((vehicle) => (
                       <TableRow 
                         key={vehicle.id}
                         className="cursor-pointer hover:bg-muted/50"

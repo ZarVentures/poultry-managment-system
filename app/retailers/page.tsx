@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
+import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X, Download, Printer } from "lucide-react"
+import { DateRangeFilter } from "@/components/date-range-filter"
 
 interface Retailer {
   id: string
@@ -42,7 +43,8 @@ export default function RetailersPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showSearchFilter, setShowSearchFilter] = useState(false)
+  const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
   const [formData, setFormData] = useState({
     shopName: "",
     ownerName: "",
@@ -140,6 +142,7 @@ export default function RetailersPage() {
       address: retailer.address,
       joinDate: retailer.joinDate || new Date().toISOString().split("T")[0],
       status: retailer.status || "active",
+      note: retailer.note || "",
     })
     setShowDialog(true)
   }
@@ -170,6 +173,21 @@ export default function RetailersPage() {
   const getFilteredAndSortedRetailers = () => {
     let filtered = retailers
 
+    // Apply date range filter
+    if (dateRangeStart && dateRangeEnd) {
+      const start = new Date(dateRangeStart)
+      const end = new Date(dateRangeEnd)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+
+      filtered = filtered.filter((retailer) => {
+        if (!retailer.joinDate) return false
+        const joinDate = new Date(retailer.joinDate)
+        joinDate.setHours(0, 0, 0, 0)
+        return joinDate >= start && joinDate <= end
+      })
+    }
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
@@ -197,6 +215,147 @@ export default function RetailersPage() {
     return filtered
   }
 
+  const filteredRetailers = useMemo(() => getFilteredAndSortedRetailers(), [retailers, dateRangeStart, dateRangeEnd, searchQuery, sortOrder])
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+  }
+
+  const handleDownloadPDF = () => {
+    const filtered = getFilteredAndSortedRetailers()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Retailers Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Retailers List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Retailers:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Shop Name</th>
+                <th>Owner Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(retailer => `
+                <tr>
+                  <td>${retailer.shopName}</td>
+                  <td>${retailer.ownerName}</td>
+                  <td>${retailer.phone}</td>
+                  <td>${retailer.address || "N/A"}</td>
+                  <td>${retailer.joinDate || "N/A"}</td>
+                  <td>${(retailer.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
+  const handlePrintReport = () => {
+    const filtered = getFilteredAndSortedRetailers()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Retailers Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Retailers List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Retailers:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Shop Name</th>
+                <th>Owner Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(retailer => `
+                <tr>
+                  <td>${retailer.shopName}</td>
+                  <td>${retailer.ownerName}</td>
+                  <td>${retailer.phone}</td>
+                  <td>${retailer.address || "N/A"}</td>
+                  <td>${retailer.joinDate || "N/A"}</td>
+                  <td>${(retailer.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
   if (!mounted) return null
 
   return (
@@ -211,7 +370,7 @@ export default function RetailersPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                Add Retailer
+                Add New Retailer
         </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -305,7 +464,7 @@ export default function RetailersPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Active Retailers</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Retailers</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
@@ -315,7 +474,7 @@ export default function RetailersPage() {
         </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Deactive Retailers</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Inactive Retailers</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
@@ -332,37 +491,49 @@ export default function RetailersPage() {
                 <CardTitle>Retailers List</CardTitle>
                 <CardDescription>View and manage all retailers</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                {showSearchFilter && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <DateRangeFilter
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Filter:</Label>
                   <div className="flex items-center gap-2">
                     <Input
-                      placeholder="Search by name or phone..."
+                      placeholder="Search by shop name or phone..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64"
+                      className="w-[200px]"
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSearchQuery("")
-                        setShowSearchFilter(false)
-                      }}
-                    >
-                      <X size={16} />
-                    </Button>
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSearchQuery("")}
+                        className="h-10 w-10"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
                   </div>
-                )}
-                {!showSearchFilter && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSearchFilter(true)}
-                  >
-                    <Search className="mr-2" size={16} />
-                    Filter
-                  </Button>
-                )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                >
+                  <Download className="mr-2" size={16} />
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintReport}
+                >
+                  <Printer className="mr-2" size={16} />
+                  Print Report
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -387,20 +558,20 @@ export default function RetailersPage() {
                     <TableHead>Owner Name</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Join Date</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getFilteredAndSortedRetailers().length === 0 ? (
+                  {filteredRetailers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? "No retailers found matching your search." : "No retailers added yet. Click \"Add Retailer\" to get started."}
+                        {searchQuery || (dateRangeStart && dateRangeEnd) ? "No retailers found matching your filters." : "No retailers added yet. Click \"Add New Retailer\" to get started."}
                       </TableCell>
                     </TableRow>
         ) : (
-          getFilteredAndSortedRetailers().map((retailer) => (
+          filteredRetailers.map((retailer) => (
                       <TableRow 
                         key={retailer.id}
                         className="cursor-pointer hover:bg-muted/50"
@@ -410,6 +581,7 @@ export default function RetailersPage() {
                         <TableCell>{retailer.ownerName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{retailer.phone}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{retailer.address || "N/A"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{retailer.joinDate || "N/A"}</TableCell>
                         <TableCell>
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -421,7 +593,6 @@ export default function RetailersPage() {
                             {(retailer.status || "active") === "active" ? "Active" : "Inactive"}
                           </span>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{retailer.joinDate || "N/A"}</TableCell>
                         <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(retailer)}>
                             <Edit2 size={16} />

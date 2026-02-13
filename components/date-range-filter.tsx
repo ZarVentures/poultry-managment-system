@@ -42,7 +42,7 @@ export function DateRangeFilter({ startDate, endDate, onDateRangeChange }: DateR
           <Button
             variant="outline"
             className={cn(
-              "w-[300px] justify-start text-left font-normal",
+              "w-[200px] justify-start text-left font-normal",
               !startDate && !endDate && "text-muted-foreground"
             )}
           >
