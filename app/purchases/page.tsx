@@ -16,7 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit2, Trash2, Eye } from "lucide-react"
+import { Plus, Edit2, Trash2, Eye, Download, Printer, Search, X } from "lucide-react"
+import { DateRangeFilter } from "@/components/date-range-filter"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useDateFilter } from "@/contexts/date-filter-context"
 
@@ -47,7 +48,7 @@ interface PurchaseOrder {
   farmerMobile: string
   farmLocation: string
   vehicleNo: string
-  purchaseType: "Cash" | "Credit"
+  purchaseType: "Paid" | "Credit"
   notes: string
   birdType: string
   numberOfCages: number
@@ -89,6 +90,9 @@ export default function PurchasesPage() {
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingOrder, setViewingOrder] = useState<PurchaseOrder | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
   const [formData, setFormData] = useState<{
     purchaseInvoiceNo: string
     purchaseDate: string
@@ -96,10 +100,9 @@ export default function PurchasesPage() {
     farmerMobile: string
     farmLocation: string
     vehicleNo: string
-    purchaseType: "Cash" | "Credit"
+    purchaseType: "Paid" | "Credit"
     notes: string
     birdType: string
-    numberOfBirds: string
     averageWeight: string
     totalWeight: string
     ratePerKg: string
@@ -120,7 +123,7 @@ export default function PurchasesPage() {
     farmerMobile: "",
     farmLocation: "",
     vehicleNo: "",
-    purchaseType: "Cash",
+    purchaseType: "Paid",
     notes: "",
     birdType: "",
     numberOfCages: "",
@@ -184,12 +187,18 @@ export default function PurchasesPage() {
     }
   }, [formData.farmerName, farmers])
 
+  // Auto-calculate number of birds from cages
+  const calculatedNumberOfBirds = useMemo(() => {
+    const cages = Number.parseFloat(formData.numberOfCages) || 0
+    return cages * 16
+  }, [formData.numberOfCages])
+
   // Auto-calculate total weight
   const totalWeight = useMemo(() => {
-    const birds = Number.parseFloat(formData.numberOfBirds) || 0
+    const birds = calculatedNumberOfBirds || 0
     const avgWeight = Number.parseFloat(formData.averageWeight) || 0
     return birds * avgWeight
-  }, [formData.numberOfBirds, formData.averageWeight])
+  }, [calculatedNumberOfBirds, formData.averageWeight])
 
   // Auto-calculate total amount
   const totalAmount = useMemo(() => {
@@ -261,7 +270,7 @@ export default function PurchasesPage() {
 
   const handleSave = async () => {
     // Only validate mandatory fields (marked with *)
-    if (!formData.purchaseInvoiceNo || !formData.purchaseDate || !formData.farmerName || !formData.numberOfCages || !formData.numberOfBirds || !formData.ratePerKg) {
+    if (!formData.purchaseInvoiceNo || !formData.purchaseDate || !formData.farmerName || !formData.numberOfCages || !formData.ratePerKg) {
       alert("Please fill all required fields (marked with *)")
       return
     }
@@ -279,11 +288,11 @@ export default function PurchasesPage() {
           farmerMobile: formData.farmerMobile || "",
           farmLocation: formData.farmLocation || "",
           vehicleNo: formData.vehicleNo || "",
-          purchaseType: formData.purchaseType || "Cash",
+          purchaseType: formData.purchaseType || "Paid",
           notes: formData.notes || "",
           birdType: formData.birdType || "",
           numberOfCages: Number.parseFloat(formData.numberOfCages) || 0,
-          numberOfBirds: Number.parseFloat(formData.numberOfBirds) || 0,
+          numberOfBirds: calculatedNumberOfBirds || 0,
           ratePerKg: Number.parseFloat(formData.ratePerKg) || 0,
           averageWeight: formData.averageWeight ? Number.parseFloat(formData.averageWeight) : 0,
           totalWeight: formData.totalWeight ? Number.parseFloat(formData.totalWeight) : 0,
@@ -306,8 +315,8 @@ export default function PurchasesPage() {
       const result = await response.json()
 
       if (result.success) {
-        resetForm()
-        setShowDialog(false)
+    resetForm()
+    setShowDialog(false)
         // Refresh the orders list
         fetchOrders()
       } else {
@@ -327,7 +336,7 @@ export default function PurchasesPage() {
       farmerMobile: "",
       farmLocation: "",
       vehicleNo: "",
-      purchaseType: "Cash",
+      purchaseType: "Paid",
     notes: "",
     birdType: "",
     numberOfCages: "",
@@ -347,7 +356,7 @@ export default function PurchasesPage() {
     paymentMode: "",
     totalPaymentMade: "",
     balanceAmount: "",
-    dueDate: "",
+      dueDate: "",
     })
     setEditingId(null)
   }
@@ -361,11 +370,10 @@ export default function PurchasesPage() {
       farmerMobile: order.farmerMobile || "",
       farmLocation: order.farmLocation || "",
       vehicleNo: order.vehicleNo || "",
-      purchaseType: order.purchaseType || "Cash",
+      purchaseType: order.purchaseType || "Paid",
       notes: order.notes || "",
       birdType: order.birdType || "",
       numberOfCages: order.numberOfCages?.toString() || order.cageQuantity?.toString() || "",
-      numberOfBirds: order.numberOfBirds?.toString() || order.birdQuantity?.toString() || "",
       ratePerKg: order.ratePerKg?.toString() || order.unitCost?.toString() || "",
       averageWeight: order.averageWeight?.toString() || "",
       totalWeight: order.totalWeight?.toString() || "",
@@ -399,21 +407,188 @@ export default function PurchasesPage() {
     setShowViewDialog(true)
   }
 
-  // Filter orders based on date range
+  // Filter orders based on date range and search
   const filteredOrders = useMemo(() => {
-    if (!startDate || !endDate) return orders
+    let filtered = orders
 
-    return orders.filter((order) => {
-      const orderDate = new Date(order.purchaseDate || order.date || "")
-      const start = new Date(startDate)
-      const end = new Date(endDate)
+    // Apply date range filter
+    if (dateRangeStart && dateRangeEnd) {
+      const start = new Date(dateRangeStart)
+      const end = new Date(dateRangeEnd)
       start.setHours(0, 0, 0, 0)
       end.setHours(23, 59, 59, 999)
-      orderDate.setHours(0, 0, 0, 0)
 
-      return orderDate >= start && orderDate <= end
-    })
-  }, [orders, startDate, endDate])
+      filtered = filtered.filter((order) => {
+        const orderDate = new Date(order.purchaseDate || order.date || "")
+        orderDate.setHours(0, 0, 0, 0)
+        return orderDate >= start && orderDate <= end
+      })
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(
+        (order) =>
+          (order.purchaseInvoiceNo || order.orderNumber || "").toLowerCase().includes(query) ||
+          (order.farmerName || order.supplier || "").toLowerCase().includes(query) ||
+          (order.farmerMobile || "").toLowerCase().includes(query),
+      )
+    }
+
+    return filtered
+  }, [orders, dateRangeStart, dateRangeEnd, searchQuery])
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+  }
+
+  const handleDownloadPDF = () => {
+    const filtered = filteredOrders
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Purchase Orders Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Purchase Orders List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Orders:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Purchase Invoice No.</th>
+                <th>Farmer Name</th>
+                <th>Order Date</th>
+                <th>Rate per Kg</th>
+                <th>Cage Qty</th>
+                <th>Bird Qty</th>
+                <th>Average Bird Weight (Kg)</th>
+                <th>Total Value</th>
+                <th>Purchase Payment</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(order => `
+                <tr>
+                  <td>${order.purchaseInvoiceNo || order.orderNumber || "N/A"}</td>
+                  <td>${order.farmerName || order.supplier || "N/A"}</td>
+                  <td>${order.purchaseDate || order.date || "N/A"}</td>
+                  <td>₹${(order.ratePerKg || order.unitCost || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${(order.numberOfCages || order.cageQuantity || 0).toLocaleString()}</td>
+                  <td>${(order.numberOfBirds || order.birdQuantity || 0).toLocaleString()}</td>
+                  <td>${(order.averageWeight || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>₹${(order.totalAmount || order.totalValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${order.purchaseType || "Paid"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
+  const handlePrintReport = () => {
+    const filtered = filteredOrders
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Purchase Orders Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Purchase Orders List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Orders:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Purchase Invoice No.</th>
+                <th>Farmer Name</th>
+                <th>Order Date</th>
+                <th>Rate per Kg</th>
+                <th>Cage Qty</th>
+                <th>Bird Qty</th>
+                <th>Average Bird Weight (Kg)</th>
+                <th>Total Value</th>
+                <th>Purchase Payment</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(order => `
+                <tr>
+                  <td>${order.purchaseInvoiceNo || order.orderNumber || "N/A"}</td>
+                  <td>${order.farmerName || order.supplier || "N/A"}</td>
+                  <td>${order.purchaseDate || order.date || "N/A"}</td>
+                  <td>₹${(order.ratePerKg || order.unitCost || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${(order.numberOfCages || order.cageQuantity || 0).toLocaleString()}</td>
+                  <td>${(order.numberOfBirds || order.birdQuantity || 0).toLocaleString()}</td>
+                  <td>${(order.averageWeight || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>₹${(order.totalAmount || order.totalValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${order.purchaseType || "Paid"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -446,7 +621,7 @@ export default function PurchasesPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                New Purchase
+                Add New Purchase
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -461,19 +636,19 @@ export default function PurchasesPage() {
                     <CardTitle className="text-lg">Section 1: Header Information</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                         <Label>Purchase Invoice No. *</Label>
-                        <Input
+                    <Input
                           value={formData.purchaseInvoiceNo}
                           onChange={(e) => setFormData({ ...formData, purchaseInvoiceNo: e.target.value })}
                           placeholder="Enter invoice number"
-                        />
-                      </div>
-                      <div className="space-y-2">
+                    />
+                  </div>
+                  <div className="space-y-2">
                         <Label>Purchase Date *</Label>
-                        <Input
-                          type="date"
+                    <Input
+                      type="date"
                           value={formData.purchaseDate}
                           onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
                         />
@@ -507,18 +682,18 @@ export default function PurchasesPage() {
                           readOnly
                           className="bg-muted"
                           placeholder="Auto-filled"
-                        />
-                      </div>
-                      <div className="space-y-2">
+                    />
+                  </div>
+                  <div className="space-y-2">
                         <Label>Farm Location</Label>
-                        <Input
+                    <Input
                           value={formData.farmLocation}
                           readOnly
                           className="bg-muted"
                           placeholder="Auto-filled"
-                        />
-                      </div>
-                      <div className="space-y-2">
+                    />
+                  </div>
+                  <div className="space-y-2">
                         <Label>Vehicle No</Label>
                         <Select
                           value={formData.vehicleNo}
@@ -541,20 +716,20 @@ export default function PurchasesPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Purchase Type *</Label>
+                        <Label>Purchase Payment *</Label>
                         <Select
                           value={formData.purchaseType}
-                          onValueChange={(value: "Cash" | "Credit") => setFormData({ ...formData, purchaseType: value })}
+                          onValueChange={(value: "Paid" | "Credit") => setFormData({ ...formData, purchaseType: value })}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Cash">Cash</SelectItem>
+                            <SelectItem value="Paid">Paid</SelectItem>
                             <SelectItem value="Credit">Credit</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
+                  </div>
                       <div className="space-y-2 md:col-span-2">
                         <Label>Notes</Label>
                         <Textarea
@@ -564,7 +739,7 @@ export default function PurchasesPage() {
                           rows={3}
                         />
                       </div>
-                    </div>
+                </div>
                   </CardContent>
                 </Card>
 
@@ -592,25 +767,26 @@ export default function PurchasesPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                         <Label>Number of Cages *</Label>
-                        <Input
+                      <Input
                           type="number"
                           value={formData.numberOfCages}
                           onChange={(e) => setFormData({ ...formData, numberOfCages: e.target.value })}
                           placeholder="0"
-                        />
-                      </div>
+                      />
+                    </div>
                       <div className="space-y-2">
                         <Label>Number of Birds *</Label>
                         <Input
                           type="number"
-                          value={formData.numberOfBirds}
-                          onChange={(e) => setFormData({ ...formData, numberOfBirds: e.target.value })}
-                          placeholder="0"
+                          value={calculatedNumberOfBirds}
+                          readOnly
+                          className="bg-muted"
+                          placeholder="Auto-calculated"
                         />
                       </div>
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                         <Label>Rate per Kg *</Label>
                         <Input
                           type="number"
@@ -622,13 +798,13 @@ export default function PurchasesPage() {
                       </div>
                       <div className="space-y-2">
                         <Label>Average Bird Weight (Kg)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
+                      <Input
+                        type="number"
+                        step="0.01"
                           value={formData.averageWeight}
                           onChange={(e) => setFormData({ ...formData, averageWeight: e.target.value })}
-                          placeholder="0.00"
-                        />
+                        placeholder="0.00"
+                      />
                       </div>
                       <div className="space-y-2">
                         <Label>Total Weight</Label>
@@ -710,8 +886,8 @@ export default function PurchasesPage() {
                           onChange={(e) => setFormData({ ...formData, deductions: e.target.value })}
                           placeholder="0.00"
                         />
-                      </div>
-                    </div>
+                  </div>
+                </div>
                   </CardContent>
                 </Card>
 
@@ -778,9 +954,9 @@ export default function PurchasesPage() {
                           placeholder="0.00"
                         />
                       </div>
-                      <div className="space-y-2">
+                <div className="space-y-2">
                         <Label>Balance Amount</Label>
-                        <Input
+                  <Input
                           type="text"
                           value={formData.balanceAmount ? `₹${Number.parseFloat(formData.balanceAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
                           readOnly
@@ -805,10 +981,10 @@ export default function PurchasesPage() {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total purchase (no)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{filteredOrders.length}</div>
@@ -816,26 +992,84 @@ export default function PurchasesPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Orders</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Birds Purchase (Qty)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{filteredOrders.filter((o) => o.status === "pending").length}</div>
+              <div className="text-3xl font-bold">
+                {filteredOrders.reduce((sum, o) => sum + (o.numberOfBirds || o.birdQuantity || 0), 0).toLocaleString()}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Value(rs)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">₹{filteredOrders.reduce((sum, o) => sum + (o.totalAmount || o.totalValue || 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total payment Made (rs)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">₹{filteredOrders.reduce((sum, o) => sum + (o.totalPaymentMade || 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Purchase Orders</CardTitle>
-            <CardDescription>View and manage all purchase orders</CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Purchase Orders List</CardTitle>
+                <CardDescription>View and manage all purchase orders</CardDescription>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <DateRangeFilter
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Filter:</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search by invoice, farmer name or phone..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-[200px]"
+                    />
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSearchQuery("")}
+                        className="h-10 w-10"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                >
+                  <Download className="mr-2" size={16} />
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintReport}
+                >
+                  <Printer className="mr-2" size={16} />
+                  Print Report
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -858,7 +1092,7 @@ export default function PurchasesPage() {
                   {filteredOrders.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                        No purchase orders found. Click "New Purchase" to create one.
+                        {searchQuery || (dateRangeStart && dateRangeEnd) ? "No purchase orders found matching your filters." : "No purchase orders found. Click \"Add New Purchase\" to create one."}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -876,26 +1110,26 @@ export default function PurchasesPage() {
                         <TableCell>{(order.numberOfBirds || order.birdQuantity || 0).toLocaleString()}</TableCell>
                         <TableCell>{(order.averageWeight || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="font-semibold">₹{(order.totalAmount || order.totalValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell>
-                          <span
+                      <TableCell>
+                        <span
                             className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                              (order.purchaseType || "Cash") === "Cash"
+                              (order.purchaseType || "Paid") === "Paid"
                                 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                                 : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                             }`}
                           >
-                            {order.purchaseType || "Cash"}
-                          </span>
-                        </TableCell>
+                            {order.purchaseType || "Paid"}
+                        </span>
+                      </TableCell>
                         <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="outline" size="icon" onClick={() => handleEdit(order)}>
-                            <Edit2 size={16} />
-                          </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleDelete(order.id)}>
-                            <Trash2 size={16} />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        <Button variant="outline" size="icon" onClick={() => handleEdit(order)}>
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => handleDelete(order.id)}>
+                          <Trash2 size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                     ))
                   )}
                 </TableBody>
@@ -906,62 +1140,171 @@ export default function PurchasesPage() {
 
         {/* View Dialog */}
         <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Purchase Order Details</DialogTitle>
               <DialogDescription>View complete purchase order information</DialogDescription>
             </DialogHeader>
             {viewingOrder && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Order Number</Label>
-                    <div className="text-sm font-medium">{viewingOrder.orderNumber}</div>
+                {/* Section 1: Header Information */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold">Section 1: Header Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Purchase Invoice No.</Label>
+                      <div className="text-sm font-medium">{viewingOrder.purchaseInvoiceNo || viewingOrder.orderNumber || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Purchase Date</Label>
+                      <div className="text-sm font-medium">{viewingOrder.purchaseDate || viewingOrder.date || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Farmer Name</Label>
+                      <div className="text-sm font-medium">{viewingOrder.farmerName || viewingOrder.supplier || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Farmer Mobile</Label>
+                      <div className="text-sm font-medium">{viewingOrder.farmerMobile || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Farm Location</Label>
+                      <div className="text-sm font-medium">{viewingOrder.farmLocation || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Vehicle No</Label>
+                      <div className="text-sm font-medium">{viewingOrder.vehicleNo || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Purchase Payment</Label>
+                      <div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          (viewingOrder.purchaseType || "Paid") === "Paid"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        }`}>
+                          {viewingOrder.purchaseType || "Paid"}
+                        </span>
+                      </div>
+                    </div>
+                    {viewingOrder.notes && (
+                      <div className="space-y-2 md:col-span-2">
+                        <Label className="text-muted-foreground">Notes</Label>
+                        <div className="text-sm font-medium whitespace-pre-wrap">{viewingOrder.notes}</div>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Supplier</Label>
-                    <div className="text-sm font-medium">{viewingOrder.supplier}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Date</Label>
-                    <div className="text-sm font-medium">{viewingOrder.date}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Status</Label>
-                    <div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(viewingOrder.status)}`}>
-                        {formatStatus(viewingOrder.status)}
-                      </span>
+                </div>
+
+                {/* Section 2: Bird Details */}
+                <div className="space-y-3 pt-4 border-t">
+                  <h3 className="text-lg font-semibold">Section 2: Bird Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Bird Type</Label>
+                      <div className="text-sm font-medium">{viewingOrder.birdType || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Number of Cages</Label>
+                      <div className="text-sm font-medium">{(viewingOrder.numberOfCages || viewingOrder.cageQuantity || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Number of Birds</Label>
+                      <div className="text-sm font-medium">{(viewingOrder.numberOfBirds || viewingOrder.birdQuantity || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Rate per Kg</Label>
+                      <div className="text-sm font-medium">₹{(viewingOrder.ratePerKg || viewingOrder.unitCost || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Average Bird Weight (Kg)</Label>
+                      <div className="text-sm font-medium">{(viewingOrder.averageWeight || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Total Weight</Label>
+                      <div className="text-sm font-medium">{(viewingOrder.totalWeight || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kg</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Total Amount</Label>
+                      <div className="text-sm font-medium font-semibold">₹{(viewingOrder.totalAmount || viewingOrder.totalValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Bird Quantity</Label>
-                    <div className="text-sm font-medium">{viewingOrder.birdQuantity.toLocaleString()}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Cage Quantity</Label>
-                    <div className="text-sm font-medium">{viewingOrder.cageQuantity.toLocaleString()}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Unit Cost</Label>
-                    <div className="text-sm font-medium">₹{viewingOrder.unitCost.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Total Value</Label>
-                    <div className="text-sm font-medium font-semibold">₹{viewingOrder.totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                  </div>
-                  {viewingOrder.description && (
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-muted-foreground">Description</Label>
-                      <div className="text-sm font-medium">{viewingOrder.description}</div>
+                </div>
+
+                {/* Section 3: Charges */}
+                {(viewingOrder.transportCharges || viewingOrder.loadingCharges || viewingOrder.commission || viewingOrder.otherCharges || viewingOrder.deductions) && (
+                  <div className="space-y-3 pt-4 border-t">
+                    <h3 className="text-lg font-semibold">Section 3: Charges</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {viewingOrder.transportCharges && (
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Transport Charges</Label>
+                          <div className="text-sm font-medium">₹{(viewingOrder.transportCharges || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                      )}
+                      {viewingOrder.loadingCharges && (
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Loading Charges</Label>
+                          <div className="text-sm font-medium">₹{(viewingOrder.loadingCharges || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                      )}
+                      {viewingOrder.commission && (
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Commission</Label>
+                          <div className="text-sm font-medium">₹{(viewingOrder.commission || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                      )}
+                      {viewingOrder.otherCharges && (
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Other Charges</Label>
+                          <div className="text-sm font-medium">₹{(viewingOrder.otherCharges || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                      )}
+                      {viewingOrder.deductions && (
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Deductions</Label>
+                          <div className="text-sm font-medium">₹{(viewingOrder.deductions || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {viewingOrder.notes && (
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-muted-foreground">Notes</Label>
-                      <div className="text-sm font-medium">{viewingOrder.notes}</div>
+                  </div>
+                )}
+
+                {/* Section 4: Payment */}
+                <div className="space-y-3 pt-4 border-t">
+                  <h3 className="text-lg font-semibold">Section 4: Payment</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Total Invoice</Label>
+                      <div className="text-sm font-medium font-semibold">₹{(viewingOrder.totalInvoice || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
-                  )}
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Advance Paid</Label>
+                      <div className="text-sm font-medium">₹{(viewingOrder.advancePaid || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Outstanding Payment</Label>
+                      <div className="text-sm font-medium">₹{(viewingOrder.outstandingPayment || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Payment Mode</Label>
+                      <div className="text-sm font-medium">{viewingOrder.paymentMode || "N/A"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Total Payment Made</Label>
+                      <div className="text-sm font-medium font-semibold">₹{(viewingOrder.totalPaymentMade || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Balance Amount</Label>
+                      <div className="text-sm font-medium">₹{(viewingOrder.balanceAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    </div>
+                    {viewingOrder.dueDate && (
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Due Date</Label>
+                        <div className="text-sm font-medium">{viewingOrder.dueDate}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

@@ -23,8 +23,6 @@ import {
   Truck,
   AlertCircle,
 } from "lucide-react"
-import { DateRangeFilter } from "@/components/date-range-filter"
-import { useDateFilter } from "@/contexts/date-filter-context"
 
 interface User {
   email: string
@@ -148,8 +146,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <header className="bg-card border-b border-border px-6 py-4 flex justify-between items-center">
           <h2 className="text-sm text-muted-foreground">Welcome, {user.email}</h2>
           <div className="flex items-center gap-4">
-            <DateFilterHeader />
-          <div className="text-sm text-muted-foreground">Role: {user.role}</div>
+            <div className="text-sm text-muted-foreground">Role: {user.role}</div>
           </div>
         </header>
 
@@ -188,36 +185,3 @@ function SidebarLink({
   )
 }
 
-function DateFilterHeader() {
-  const pathname = usePathname()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Show date filter only on specific pages
-  const showDateFilter = [
-    "/inventory",
-    "/purchases",
-    "/sales",
-    "/mortality",
-    "/expenses",
-  ].includes(pathname)
-
-  if (!showDateFilter || !mounted) return null
-
-  return <DateFilterHeaderContent />
-}
-
-function DateFilterHeaderContent() {
-  const { startDate, endDate, setDateRange } = useDateFilter()
-
-  return (
-    <DateRangeFilter
-      startDate={startDate}
-      endDate={endDate}
-      onDateRangeChange={setDateRange}
-    />
-  )
-}
