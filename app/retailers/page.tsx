@@ -18,23 +18,20 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
+import { api, Retailer } from "@/lib/api"
+import { toast } from "sonner"
 
-interface Retailer {
-  id: string
-  shopName: string
+interface RetailerFormData {
+  name: string
   ownerName: string
-  email: string
   phone: string
   address: string
-  totalPurchases: number
-  lastOrder: string
-  joinDate: string
-  status: "active" | "inactive"
-  note?: string
+  notes: string
 }
 
 export default function RetailersPage() {
   const [retailers, setRetailers] = useState<Retailer[]>([])
+  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
@@ -43,90 +40,64 @@ export default function RetailersPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [showSearchFilter, setShowSearchFilter] = useState(false)
-  const [formData, setFormData] = useState({
-    shopName: "",
+  const [formData, setFormData] = useState<RetailerFormData>({
+    name: "",
     ownerName: "",
     phone: "",
     address: "",
-    joinDate: new Date().toISOString().split("T")[0],
-    status: "active" as "active" | "inactive",
-    note: "",
+    notes: "",
   })
 
   useEffect(() => {
     setMounted(true)
-    const savedRetailers = localStorage.getItem("retailers")
-    if (savedRetailers) {
-      const parsed = JSON.parse(savedRetailers)
-      // Add status and joinDate fields for backward compatibility
-      const retailersWithStatus = parsed.map((retailer: Retailer) => ({
-        ...retailer,
-        status: retailer.status || "active",
-        joinDate: retailer.joinDate || new Date().toISOString().split("T")[0],
-      }))
-      setRetailers(retailersWithStatus)
-      // Update localStorage with new fields
-      localStorage.setItem("retailers", JSON.stringify(retailersWithStatus))
-    } else {
-      setRetailers([])
-    }
+    loadRetailers()
   }, [])
 
-  const handleSave = () => {
-    if (!formData.shopName || !formData.ownerName || !formData.phone) {
-      alert("Please fill all required fields")
+  const loadRetailers = async () => {
+    try {
+      setLoading(true)
+      const data = await api.getRetailers()
+      setRetailers(data)
+    } catch (error) {
+      console.error("Error loading retailers:", error)
+      toast.error("Failed to load retailers")
+      setRetailers([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.ownerName || !formData.phone) {
+      toast.error("Please fill all required fields")
       return
     }
 
-    if (editingId) {
-      const updated = retailers.map((retailer) =>
-        retailer.id === editingId
-          ? {
-              ...retailer,
-              shopName: formData.shopName,
-              ownerName: formData.ownerName,
-              phone: formData.phone,
-              address: formData.address,
-              joinDate: formData.joinDate,
-              status: formData.status,
-              note: formData.note,
-            }
-          : retailer,
-      )
-      setRetailers(updated)
-      localStorage.setItem("retailers", JSON.stringify(updated))
-    } else {
-      const newRetailer: Retailer = {
-        id: Date.now().toString(),
-        shopName: formData.shopName,
-        ownerName: formData.ownerName,
-        email: "", // Keep for backward compatibility
-        phone: formData.phone,
-        address: formData.address,
-        totalPurchases: 0,
-        lastOrder: new Date().toISOString().split("T")[0],
-        joinDate: formData.joinDate,
-        status: formData.status,
-        note: formData.note,
+    try {
+      if (editingId) {
+        await api.updateRetailer(editingId, formData)
+        toast.success("Retailer updated successfully")
+      } else {
+        await api.createRetailer(formData)
+        toast.success("Retailer added successfully")
       }
-      const updated = [...retailers, newRetailer]
-      setRetailers(updated)
-      localStorage.setItem("retailers", JSON.stringify(updated))
+      
+      await loadRetailers()
+      resetForm()
+      setShowDialog(false)
+    } catch (error) {
+      console.error("Error saving retailer:", error)
+      toast.error("Failed to save retailer")
     }
-
-    resetForm()
-    setShowDialog(false)
   }
 
   const resetForm = () => {
     setFormData({
-      shopName: "",
+      name: "",
       ownerName: "",
       phone: "",
       address: "",
-      joinDate: new Date().toISOString().split("T")[0],
-      status: "active" as "active" | "inactive",
-      note: "",
+      notes: "",
     })
     setEditingId(null)
   }
@@ -134,21 +105,25 @@ export default function RetailersPage() {
   const handleEdit = (retailer: Retailer) => {
     setEditingId(retailer.id)
     setFormData({
-      shopName: retailer.shopName,
-      ownerName: retailer.ownerName,
-      phone: retailer.phone,
-      address: retailer.address,
-      joinDate: retailer.joinDate || new Date().toISOString().split("T")[0],
-      status: retailer.status || "active",
+      name: retailer.name,
+      ownerName: retailer.ownerName || "",
+      phone: retailer.phone || "",
+      address: retailer.address || "",
+      notes: retailer.notes || "",
     })
     setShowDialog(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this retailer?")) {
-      const updated = retailers.filter((retailer) => retailer.id !== id)
-      setRetailers(updated)
-      localStorage.setItem("retailers", JSON.stringify(updated))
+      try {
+        await api.deleteRetailer(id)
+        toast.success("Retailer deleted successfully")
+        await loadRetailers()
+      } catch (error) {
+        console.error("Error deleting retailer:", error)
+        toast.error("Failed to delete retailer")
+      }
     }
   }
 
@@ -175,8 +150,8 @@ export default function RetailersPage() {
       const query = searchQuery.toLowerCase().trim()
       filtered = filtered.filter(
         (retailer) =>
-          retailer.shopName.toLowerCase().includes(query) ||
-          retailer.ownerName.toLowerCase().includes(query) ||
+          retailer.name.toLowerCase().includes(query) ||
+          (retailer.ownerName && retailer.ownerName.toLowerCase().includes(query)) ||
           (retailer.phone && retailer.phone.toLowerCase().includes(query)),
       )
     }
@@ -184,8 +159,8 @@ export default function RetailersPage() {
     // Apply sorting
     if (sortOrder) {
       filtered = [...filtered].sort((a, b) => {
-        const nameA = a.shopName.toLowerCase()
-        const nameB = b.shopName.toLowerCase()
+        const nameA = a.name.toLowerCase()
+        const nameB = b.name.toLowerCase()
         if (sortOrder === "asc") {
           return nameA.localeCompare(nameB)
         } else {
@@ -224,8 +199,8 @@ export default function RetailersPage() {
                   <div className="space-y-2">
                     <Label>Shop Name *</Label>
                   <Input
-                    value={formData.shopName}
-                    onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Shop name"
                   />
                 </div>
@@ -245,29 +220,6 @@ export default function RetailersPage() {
                       placeholder="Phone number"
                   />
                 </div>
-                  <div className="space-y-2">
-                    <Label>Join Date *</Label>
-                  <Input
-                      type="date"
-                      value={formData.joinDate}
-                      onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
-                  />
-                </div>
-                  <div className="space-y-2">
-                    <Label>Status *</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>Address</Label>
                   <Input
@@ -277,10 +229,10 @@ export default function RetailersPage() {
                   />
                 </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Note</Label>
+                    <Label>Notes</Label>
                     <Textarea
-                      value={formData.note}
-                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       placeholder="Additional notes about the retailer"
                       rows={3}
                     />
@@ -300,26 +252,31 @@ export default function RetailersPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Retailers</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{retailers.length}</div>
+              <div className="text-3xl font-bold">{loading ? "..." : retailers.length}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Active Retailers</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Retailers</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {retailers.filter((r) => (r.status || "active") === "active").length}
+                {loading ? "..." : retailers.length}
               </div>
           </CardContent>
         </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Deactive Retailers</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Recent Additions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {retailers.filter((r) => (r.status || "active") === "inactive").length}
+                {loading ? "..." : retailers.filter(r => {
+                  const createdDate = new Date(r.createdAt || "")
+                  const thirtyDaysAgo = new Date()
+                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+                  return createdDate > thirtyDaysAgo
+                }).length}
               </div>
             </CardContent>
           </Card>
@@ -387,15 +344,20 @@ export default function RetailersPage() {
                     <TableHead>Owner Name</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Join Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getFilteredAndSortedRetailers().length === 0 ? (
+                  {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Loading retailers...
+                      </TableCell>
+                    </TableRow>
+                  ) : getFilteredAndSortedRetailers().length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         {searchQuery ? "No retailers found matching your search." : "No retailers added yet. Click \"Add Retailer\" to get started."}
                       </TableCell>
                     </TableRow>
@@ -406,22 +368,13 @@ export default function RetailersPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(retailer)}
                       >
-                        <TableCell className="font-medium">{retailer.shopName}</TableCell>
-                        <TableCell>{retailer.ownerName}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{retailer.phone}</TableCell>
+                        <TableCell className="font-medium">{retailer.name}</TableCell>
+                        <TableCell>{retailer.ownerName || "N/A"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{retailer.phone || "N/A"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{retailer.address || "N/A"}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              (retailer.status || "active") === "active"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {(retailer.status || "active") === "active" ? "Active" : "Inactive"}
-                          </span>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {retailer.createdAt ? new Date(retailer.createdAt).toLocaleDateString() : "N/A"}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{retailer.joinDate || "N/A"}</TableCell>
                         <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(retailer)}>
                             <Edit2 size={16} />
@@ -451,7 +404,7 @@ export default function RetailersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Shop Name</Label>
-                    <div className="text-sm font-medium">{viewingRetailer.shopName}</div>
+                    <div className="text-sm font-medium">{viewingRetailer.name}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Owner Name</Label>
@@ -463,7 +416,9 @@ export default function RetailersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Join Date</Label>
-                    <div className="text-sm font-medium">{viewingRetailer.joinDate || "N/A"}</div>
+                    <div className="text-sm font-medium">
+                      {viewingRetailer.createdAt ? new Date(viewingRetailer.createdAt).toLocaleDateString() : "N/A"}
+                    </div>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label className="text-muted-foreground">Address</Label>
@@ -472,19 +427,15 @@ export default function RetailersPage() {
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Status</Label>
                     <div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        viewingRetailer.status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}>
-                        {viewingRetailer.status === "active" ? "Active" : "Inactive"}
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
                       </span>
                     </div>
                   </div>
-                  {viewingRetailer.note && (
+                  {viewingRetailer.notes && (
                     <div className="space-y-2 md:col-span-2">
-                      <Label className="text-muted-foreground">Note</Label>
-                      <div className="text-sm font-medium whitespace-pre-wrap">{viewingRetailer.note}</div>
+                      <Label className="text-muted-foreground">Notes</Label>
+                      <div className="text-sm font-medium whitespace-pre-wrap">{viewingRetailer.notes}</div>
                     </div>
                   )}
                 </div>

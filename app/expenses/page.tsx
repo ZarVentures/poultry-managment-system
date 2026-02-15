@@ -18,20 +18,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Edit2, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useDateFilter } from "@/contexts/date-filter-context"
-
-interface Expense {
-  id: string
-  date: string
-  category: string
-  description: string
-  amount: number
-  paymentMethod: string
-  notes: string
-  receipt?: string
-}
+import { api, Expense } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
@@ -49,54 +41,54 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setMounted(true)
-    const saved = localStorage.getItem("expenses")
-    if (saved) {
-      setExpenses(JSON.parse(saved))
-    } else {
-      setExpenses([])
-    }
+    loadExpenses()
   }, [])
 
-  const handleSave = () => {
+  const loadExpenses = async () => {
+    try {
+      setLoading(true)
+      const data = await api.getExpenses()
+      setExpenses(data)
+    } catch (error) {
+      console.error("Error loading expenses:", error)
+      toast.error("Failed to load expenses")
+      setExpenses([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
     if (!formData.description || !formData.amount) {
-      alert("Please fill all required fields")
+      toast.error("Please fill all required fields")
       return
     }
 
-    if (editingId) {
-      setExpenses(
-        expenses.map((expense) =>
-          expense.id === editingId
-            ? {
-                ...expense,
-                date: formData.date,
-                category: formData.category,
-                description: formData.description,
-                amount: Number.parseFloat(formData.amount),
-                paymentMethod: formData.paymentMethod,
-                notes: formData.notes,
-              }
-            : expense,
-        ),
-      )
-    } else {
-      setExpenses([
-        ...expenses,
-        {
-          id: Date.now().toString(),
-          date: formData.date,
-          category: formData.category,
-          description: formData.description,
-          amount: Number.parseFloat(formData.amount),
-          paymentMethod: formData.paymentMethod,
-          notes: formData.notes,
-        },
-      ])
-    }
+    try {
+      const expenseData = {
+        expenseDate: formData.date,
+        category: formData.category as "feed" | "labor" | "medicine" | "utilities" | "equipment" | "maintenance" | "transportation" | "other",
+        description: formData.description,
+        amount: parseFloat(formData.amount),
+        paymentMethod: formData.paymentMethod as "cash" | "bank_transfer" | "check" | "credit_card",
+        notes: formData.notes,
+      }
 
-    localStorage.setItem("expenses", JSON.stringify(expenses))
-    resetForm()
-    setShowDialog(false)
+      if (editingId) {
+        await api.updateExpense(editingId, expenseData)
+        toast.success("Expense updated successfully")
+      } else {
+        await api.createExpense(expenseData)
+        toast.success("Expense recorded successfully")
+      }
+
+      await loadExpenses()
+      resetForm()
+      setShowDialog(false)
+    } catch (error) {
+      console.error("Error saving expense:", error)
+      toast.error("Failed to save expense")
+    }
   }
 
   const resetForm = () => {
@@ -114,21 +106,26 @@ export default function ExpensesPage() {
   const handleEdit = (expense: Expense) => {
     setEditingId(expense.id)
     setFormData({
-      date: expense.date,
+      date: expense.expenseDate,
       category: expense.category,
       description: expense.description,
       amount: expense.amount.toString(),
       paymentMethod: expense.paymentMethod,
-      notes: expense.notes,
+      notes: expense.notes || "",
     })
     setShowDialog(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this expense?")) {
-      const updated = expenses.filter((expense) => expense.id !== id)
-      setExpenses(updated)
-      localStorage.setItem("expenses", JSON.stringify(updated))
+      try {
+        await api.deleteExpense(id)
+        toast.success("Expense deleted successfully")
+        await loadExpenses()
+      } catch (error) {
+        console.error("Error deleting expense:", error)
+        toast.error("Failed to delete expense")
+      }
     }
   }
 
@@ -148,7 +145,7 @@ export default function ExpensesPage() {
     if (!startDate || !endDate) return expenses
 
     return expenses.filter((expense) => {
-      const expenseDate = new Date(expense.date)
+      const expenseDate = new Date(expense.expenseDate)
       const start = new Date(startDate)
       const end = new Date(endDate)
       // Set time to start/end of day for proper comparison
@@ -249,9 +246,9 @@ export default function ExpensesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="bank">Bank Transfer</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                         <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="card">Credit Card</SelectItem>
+                        <SelectItem value="credit_card">Credit Card</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -280,8 +277,8 @@ export default function ExpensesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">₹{totalExpenses}</div>
-              <p className="text-xs text-muted-foreground mt-1">{filteredExpenses.length} transactions</p>
+              <div className="text-3xl font-bold">₹{loading ? "..." : totalExpenses}</div>
+              <p className="text-xs text-muted-foreground mt-1">{loading ? "..." : filteredExpenses.length} transactions</p>
             </CardContent>
           </Card>
           <Card>
@@ -291,9 +288,9 @@ export default function ExpensesPage() {
             <CardContent>
               <div className="text-3xl font-bold">
                 ₹
-                {filteredExpenses
+                {loading ? "..." : filteredExpenses
                   .filter((e) => {
-                    const expenseDate = new Date(e.date)
+                    const expenseDate = new Date(e.expenseDate)
                     const now = new Date()
                     return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()
                   })
@@ -307,7 +304,7 @@ export default function ExpensesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                ₹{filteredExpenses.length > 0 ? (totalExpenses / filteredExpenses.length).toFixed(2) : 0}
+                ₹{loading ? "..." : (filteredExpenses.length > 0 ? (totalExpenses / filteredExpenses.length).toFixed(2) : 0)}
               </div>
             </CardContent>
           </Card>
@@ -349,24 +346,28 @@ export default function ExpensesPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-80 overflow-y-auto">
-                {filteredExpenses
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .slice(0, 5)
-                  .map((expense) => (
-                    <div key={expense.id} className="flex justify-between items-start pb-3 border-b last:border-b-0">
-                      <div>
-                        <p className="font-medium flex items-center gap-2">
-                          <span>{categoryEmojis[expense.category]}</span>
-                          {expense.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{expense.date}</p>
+                {loading ? (
+                  <div className="text-center text-muted-foreground py-4">Loading recent expenses...</div>
+                ) : (
+                  filteredExpenses
+                    .sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime())
+                    .slice(0, 5)
+                    .map((expense) => (
+                      <div key={expense.id} className="flex justify-between items-start pb-3 border-b last:border-b-0">
+                        <div>
+                          <p className="font-medium flex items-center gap-2">
+                            <span>{categoryEmojis[expense.category]}</span>
+                            {expense.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{expense.expenseDate}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">₹{expense.amount}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{expense.paymentMethod.replace('_', ' ')}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">₹{expense.amount}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{expense.paymentMethod}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -391,32 +392,46 @@ export default function ExpensesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredExpenses
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .map((expense) => (
-                      <TableRow 
-                        key={expense.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => {
-                          setViewingExpense(expense)
-                          setShowViewDialog(true)
-                        }}
-                      >
-                        <TableCell>{expense.date}</TableCell>
-                        <TableCell className="capitalize">{expense.category}</TableCell>
-                        <TableCell>{expense.description}</TableCell>
-                        <TableCell className="font-medium">₹{expense.amount}</TableCell>
-                        <TableCell className="capitalize">{expense.paymentMethod}</TableCell>
-                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="outline" size="icon" onClick={() => handleEdit(expense)}>
-                            <Edit2 size={16} />
-                          </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleDelete(expense.id)}>
-                            <Trash2 size={16} />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Loading expenses...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredExpenses.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No expenses found. Click "Record Expense" to add one.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredExpenses
+                      .sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime())
+                      .map((expense) => (
+                        <TableRow 
+                          key={expense.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => {
+                            setViewingExpense(expense)
+                            setShowViewDialog(true)
+                          }}
+                        >
+                          <TableCell>{expense.expenseDate}</TableCell>
+                          <TableCell className="capitalize">{expense.category}</TableCell>
+                          <TableCell>{expense.description}</TableCell>
+                          <TableCell className="font-medium">₹{expense.amount}</TableCell>
+                          <TableCell className="capitalize">{expense.paymentMethod.replace('_', ' ')}</TableCell>
+                          <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                            <Button variant="outline" size="icon" onClick={() => handleEdit(expense)}>
+                              <Edit2 size={16} />
+                            </Button>
+                            <Button variant="outline" size="icon" onClick={() => handleDelete(expense.id)}>
+                              <Trash2 size={16} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -435,7 +450,7 @@ export default function ExpensesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Date</Label>
-                    <div className="text-sm font-medium">{viewingExpense.date}</div>
+                    <div className="text-sm font-medium">{viewingExpense.expenseDate}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Category</Label>
@@ -451,7 +466,7 @@ export default function ExpensesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Payment Method</Label>
-                    <div className="text-sm font-medium capitalize">{viewingExpense.paymentMethod}</div>
+                    <div className="text-sm font-medium capitalize">{viewingExpense.paymentMethod.replace('_', ' ')}</div>
                   </div>
                   {viewingExpense.notes && (
                     <div className="space-y-2 md:col-span-2">

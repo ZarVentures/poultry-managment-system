@@ -17,27 +17,14 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
-
-interface Vehicle {
-  id: string
-  vehicleNumber: string
-  vehicleType: string
-  driverName: string
-  phone: string
-  ownerName?: string
-  address?: string
-  totalCapacity: string
-  petrolTankCapacity: string
-  mileage: string
-  joinDate: string
-  status: "active" | "inactive"
-  note?: string
-}
+import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X, Loader2 } from "lucide-react"
+import { api, Vehicle } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingVehicle, setViewingVehicle] = useState<Vehicle | null>(null)
@@ -45,6 +32,7 @@ export default function VehiclesPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [showSearchFilter, setShowSearchFilter] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     vehicleNumber: "",
     vehicleType: "",
@@ -62,76 +50,63 @@ export default function VehiclesPage() {
 
   useEffect(() => {
     setMounted(true)
-    const savedVehicles = localStorage.getItem("vehicles")
-    if (savedVehicles) {
-      const parsed = JSON.parse(savedVehicles)
-      // Add new fields for backward compatibility
-      const vehiclesWithFields = parsed.map((vehicle: Vehicle) => ({
-        ...vehicle,
-        status: vehicle.status || "active",
-        totalCapacity: vehicle.totalCapacity || vehicle.capacity || "",
-        petrolTankCapacity: vehicle.petrolTankCapacity || "",
-        mileage: vehicle.mileage || "",
-      }))
-      setVehicles(vehiclesWithFields)
-      // Update localStorage with new fields
-      localStorage.setItem("vehicles", JSON.stringify(vehiclesWithFields))
-    } else {
-      setVehicles([])
-    }
+    loadVehicles()
   }, [])
 
-  const handleSave = () => {
+  const loadVehicles = async () => {
+    try {
+      setLoading(true)
+      const data = await api.getVehicles()
+      setVehicles(data)
+    } catch (error) {
+      console.error('Failed to load vehicles:', error)
+      toast.error('Failed to load vehicles')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
     if (!formData.vehicleNumber || !formData.vehicleType || !formData.driverName || !formData.phone) {
-      alert("Please fill all required fields")
+      toast.error("Please fill all required fields")
       return
     }
 
-    if (editingId) {
-      const updated = vehicles.map((vehicle) =>
-        vehicle.id === editingId
-          ? {
-              ...vehicle,
-              vehicleNumber: formData.vehicleNumber,
-              vehicleType: formData.vehicleType,
-              driverName: formData.driverName,
-              phone: formData.phone,
-              ownerName: formData.ownerName,
-              address: formData.address,
-              totalCapacity: formData.totalCapacity,
-              petrolTankCapacity: formData.petrolTankCapacity,
-              mileage: formData.mileage,
-              joinDate: formData.joinDate,
-              status: formData.status,
-              note: formData.note,
-            }
-          : vehicle,
-      )
-      setVehicles(updated)
-      localStorage.setItem("vehicles", JSON.stringify(updated))
-    } else {
-      const newVehicle: Vehicle = {
-        id: Date.now().toString(),
+    try {
+      setSaving(true)
+      
+      const vehicleData = {
         vehicleNumber: formData.vehicleNumber,
         vehicleType: formData.vehicleType,
         driverName: formData.driverName,
         phone: formData.phone,
-        ownerName: formData.ownerName,
-        address: formData.address,
-        totalCapacity: formData.totalCapacity,
-        petrolTankCapacity: formData.petrolTankCapacity,
-        mileage: formData.mileage,
+        ownerName: formData.ownerName || undefined,
+        address: formData.address || undefined,
+        totalCapacity: formData.totalCapacity ? parseInt(formData.totalCapacity) : undefined,
+        petrolTankCapacity: formData.petrolTankCapacity ? parseFloat(formData.petrolTankCapacity) : undefined,
+        mileage: formData.mileage ? parseFloat(formData.mileage) : undefined,
         joinDate: formData.joinDate,
         status: formData.status,
-        note: formData.note,
+        note: formData.note || undefined,
       }
-      const updated = [...vehicles, newVehicle]
-      setVehicles(updated)
-      localStorage.setItem("vehicles", JSON.stringify(updated))
-    }
 
-    resetForm()
-    setShowDialog(false)
+      if (editingId) {
+        await api.updateVehicle(editingId, vehicleData)
+        toast.success("Vehicle updated successfully")
+      } else {
+        await api.createVehicle(vehicleData)
+        toast.success("Vehicle created successfully")
+      }
+
+      await loadVehicles()
+      resetForm()
+      setShowDialog(false)
+    } catch (error) {
+      console.error('Failed to save vehicle:', error)
+      toast.error(editingId ? "Failed to update vehicle" : "Failed to create vehicle")
+    } finally {
+      setSaving(false)
+    }
   }
 
   const resetForm = () => {
@@ -161,9 +136,9 @@ export default function VehiclesPage() {
       phone: vehicle.phone,
       ownerName: vehicle.ownerName || "",
       address: vehicle.address || "",
-      totalCapacity: vehicle.totalCapacity || "",
-      petrolTankCapacity: vehicle.petrolTankCapacity || "",
-      mileage: vehicle.mileage || "",
+      totalCapacity: vehicle.totalCapacity?.toString() || "",
+      petrolTankCapacity: vehicle.petrolTankCapacity?.toString() || "",
+      mileage: vehicle.mileage?.toString() || "",
       joinDate: vehicle.joinDate || new Date().toISOString().split("T")[0],
       status: vehicle.status || "active",
       note: vehicle.note || "",
@@ -171,11 +146,16 @@ export default function VehiclesPage() {
     setShowDialog(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this vehicle?")) {
-      const updated = vehicles.filter((vehicle) => vehicle.id !== id)
-      setVehicles(updated)
-      localStorage.setItem("vehicles", JSON.stringify(updated))
+      try {
+        await api.deleteVehicle(id)
+        toast.success("Vehicle deleted successfully")
+        await loadVehicles()
+      } catch (error) {
+        console.error('Failed to delete vehicle:', error)
+        toast.error("Failed to delete vehicle")
+      }
     }
   }
 
@@ -224,6 +204,16 @@ export default function VehiclesPage() {
   }
 
   if (!mounted) return null
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
@@ -312,19 +302,12 @@ export default function VehiclesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Total Cage Capacity</Label>
-                    <Select
+                    <Input
+                      type="number"
                       value={formData.totalCapacity}
-                      onValueChange={(value) => setFormData({ ...formData, totalCapacity: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select cage capacity" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="42">42</SelectItem>
-                        <SelectItem value="130">130</SelectItem>
-                        <SelectItem value="240">240</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={(e) => setFormData({ ...formData, totalCapacity: e.target.value })}
+                      placeholder="Cage capacity"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Petrol Tank Capacity</Label>
@@ -372,7 +355,8 @@ export default function VehiclesPage() {
                     />
                   </div>
                 </div>
-                <Button onClick={handleSave} className="w-full">
+                <Button onClick={handleSave} className="w-full" disabled={saving}>
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {editingId ? "Update" : "Add"} Vehicle
                 </Button>
               </div>

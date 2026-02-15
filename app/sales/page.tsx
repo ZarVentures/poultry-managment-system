@@ -18,36 +18,47 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Edit2, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useDateFilter } from "@/contexts/date-filter-context"
-
-interface Sale {
-  id: string
-  invoiceNumber: string
-  customer: string
-  date: string
-  productType: string
-  quantity: number
-  unitPrice: number
-  totalAmount: number
-  paymentStatus: "paid" | "pending" | "partial"
-  notes: string
-}
+import { api, Sale } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
+  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingSale, setViewingSale] = useState<Sale | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<{
-    customer: string
-    date: string
-    quantity: string
-    unitPrice: string
-    paymentStatus: "paid" | "pending" | "partial"
-    notes: string
-  }>({
-    customer: "",
+  const [formData, setFormData] = useState({
+    customerName: "",
+    saleDate: new Date().toISOString().split("T")[0],
+    productType: "eggs" as "eggs" | "meat" | "chicks" | "other",
+    quantity: "",
+    unitPrice: "",
+    paymentStatus: "pending" as "paid" | "pending" | "partial",
+    amountReceived: "",
+    notes: "",
+  })
+  const { startDate, endDate } = useDateFilter()
+
+  useEffect(() => {
+    setMounted(true)
+    loadSales()
+  }, [])
+
+  const loadSales = async () => {
+    try {
+      setLoading(true)
+      const data = await api.getSales()
+      setSales(data)
+    } catch (error) {
+      console.error("Error loading sales:", error)
+      toast.error("Failed to load sales")
+      setSales([])
+    } finally {
+      setLoading(false)
+    }
+  }
     date: new Date().toISOString().split("T")[0],
     quantity: "",
     unitPrice: "",
@@ -58,64 +69,102 @@ export default function SalesPage() {
 
   useEffect(() => {
     setMounted(true)
-    const saved = localStorage.getItem("sales")
-    if (saved) {
-      setSales(JSON.parse(saved))
-    } else {
-      setSales([])
-    }
+    loadSales()
   }, [])
 
-  const handleSave = () => {
-    if (!formData.customer || !formData.quantity || !formData.unitPrice) {
-      alert("Please fill all required fields")
+  const loadSales = async () => {
+    try {
+      setLoading(true)
+      const data = await api.getSales()
+      setSales(data)
+    } catch (error) {
+      console.error("Error loading sales:", error)
+      toast.error("Failed to load sales")
+      setSales([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!formData.customerName || !formData.quantity || !formData.unitPrice) {
+      toast.error("Please fill all required fields")
       return
     }
 
-    const totalAmount = Number.parseInt(formData.quantity) * Number.parseFloat(formData.unitPrice)
-    const invoiceNumber = editingId
-      ? sales.find((s) => s.id === editingId)?.invoiceNumber
-      : `INV-${String(sales.length + 1).padStart(3, "0")}`
+    try {
+      const saleData = {
+        customerName: formData.customerName,
+        saleDate: formData.saleDate,
+        productType: formData.productType,
+        quantity: parseInt(formData.quantity),
+        unitPrice: parseFloat(formData.unitPrice),
+        paymentStatus: formData.paymentStatus,
+        amountReceived: formData.paymentStatus === "paid" 
+          ? parseInt(formData.quantity) * parseFloat(formData.unitPrice) 
+          : parseFloat(formData.amountReceived || "0"),
+        notes: formData.notes,
+      }
 
-    if (editingId) {
-      setSales(
-        sales.map((sale) =>
-          sale.id === editingId
-            ? {
-                ...sale,
-                customer: formData.customer,
-                date: formData.date,
-                productType: sale.productType || "", // Keep existing productType or empty
-                quantity: Number.parseInt(formData.quantity),
-                unitPrice: Number.parseFloat(formData.unitPrice),
-                totalAmount,
-                paymentStatus: formData.paymentStatus,
-                notes: formData.notes,
-              }
-            : sale,
-        ),
-      )
-    } else {
-      setSales([
-        ...sales,
-        {
-          id: Date.now().toString(),
-          invoiceNumber: invoiceNumber || "",
-          customer: formData.customer,
-          date: formData.date,
-          productType: "", // No product type for new records
-          quantity: Number.parseInt(formData.quantity),
-          unitPrice: Number.parseFloat(formData.unitPrice),
-          totalAmount,
-          paymentStatus: formData.paymentStatus,
-          notes: formData.notes,
-        },
-      ])
+      if (editingId) {
+        await api.updateSale(editingId, saleData)
+        toast.success("Sale updated successfully")
+      } else {
+        await api.createSale(saleData)
+        toast.success("Sale recorded successfully")
+      }
+
+      await loadSales()
+      resetForm()
+      setShowDialog(false)
+    } catch (error) {
+      console.error("Error saving sale:", error)
+      toast.error("Failed to save sale")
     }
+  }
 
-    localStorage.setItem("sales", JSON.stringify(sales))
-    resetForm()
-    setShowDialog(false)
+  const resetForm = () => {
+    setFormData({
+      customerName: "",
+      saleDate: new Date().toISOString().split("T")[0],
+      productType: "eggs" as "eggs" | "meat" | "chicks" | "other",
+      quantity: "",
+      unitPrice: "",
+      paymentStatus: "pending" as "paid" | "pending" | "partial",
+      amountReceived: "",
+      notes: "",
+    })
+    setEditingId(null)
+  }
+
+  const handleEdit = (sale: Sale) => {
+    setEditingId(sale.id)
+    setFormData({
+      customerName: sale.customerName,
+      saleDate: sale.saleDate,
+      productType: sale.productType,
+      quantity: sale.quantity.toString(),
+      unitPrice: sale.unitPrice.toString(),
+      paymentStatus: sale.paymentStatus,
+      amountReceived: sale.amountReceived.toString(),
+      notes: sale.notes || "",
+    })
+    setShowDialog(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this sale?")) {
+      try {
+        await api.deleteSale(id)
+        toast.success("Sale deleted successfully")
+        await loadSales()
+      } catch (error) {
+        console.error("Error deleting sale:", error)
+        toast.error("Failed to delete sale")
+      }
+    }
+  }
+    }
   }
 
   const resetForm = () => {
@@ -133,21 +182,26 @@ export default function SalesPage() {
   const handleEdit = (sale: Sale) => {
     setEditingId(sale.id)
     setFormData({
-      customer: sale.customer,
-      date: sale.date,
+      customer: sale.customerName,
+      date: sale.saleDate,
       quantity: sale.quantity.toString(),
       unitPrice: sale.unitPrice.toString(),
       paymentStatus: sale.paymentStatus as "paid" | "pending" | "partial",
-      notes: sale.notes,
+      notes: sale.notes || "",
     })
     setShowDialog(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this sale?")) {
-      const updated = sales.filter((sale) => sale.id !== id)
-      setSales(updated)
-      localStorage.setItem("sales", JSON.stringify(updated))
+      try {
+        await api.deleteSale(id)
+        toast.success("Sale deleted successfully")
+        await loadSales()
+      } catch (error) {
+        console.error("Error deleting sale:", error)
+        toast.error("Failed to delete sale")
+      }
     }
   }
 
@@ -174,7 +228,7 @@ export default function SalesPage() {
     if (!startDate || !endDate) return sales
 
     return sales.filter((sale) => {
-      const saleDate = new Date(sale.date)
+      const saleDate = new Date(sale.saleDate)
       const start = new Date(startDate)
       const end = new Date(endDate)
       // Set time to start/end of day for proper comparison
@@ -305,7 +359,7 @@ export default function SalesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Sales</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{filteredSales.length}</div>
+              <div className="text-3xl font-bold">{loading ? "..." : filteredSales.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -313,7 +367,7 @@ export default function SalesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">₹{totalRevenue}</div>
+              <div className="text-3xl font-bold">₹{loading ? "..." : totalRevenue}</div>
             </CardContent>
           </Card>
           <Card>
@@ -321,7 +375,7 @@ export default function SalesPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Amount Received</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-600">₹{paidRevenue}</div>
+              <div className="text-3xl font-bold text-green-600">₹{loading ? "..." : paidRevenue}</div>
             </CardContent>
           </Card>
         </div>
@@ -347,35 +401,49 @@ export default function SalesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSales.map((sale) => (
-                    <TableRow 
-                      key={sale.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleView(sale)}
-                    >
-                      <TableCell className="font-medium">{sale.invoiceNumber}</TableCell>
-                      <TableCell>{sale.customer}</TableCell>
-                      <TableCell>{sale.date}</TableCell>
-                      <TableCell className="capitalize">{sale.productType}</TableCell>
-                      <TableCell>{sale.quantity}</TableCell>
-                      <TableCell>₹{sale.totalAmount}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusColor(sale.paymentStatus)}`}
-                        >
-                          {sale.paymentStatus.charAt(0).toUpperCase() + sale.paymentStatus.slice(1)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" size="icon" onClick={() => handleEdit(sale)}>
-                          <Edit2 size={16} />
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => handleDelete(sale.id)}>
-                          <Trash2 size={16} />
-                        </Button>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                        Loading sales...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : filteredSales.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                        No sales found. Click "Record Sale" to add one.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredSales.map((sale) => (
+                      <TableRow 
+                        key={sale.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(sale)}
+                      >
+                        <TableCell className="font-medium">{sale.invoiceNumber}</TableCell>
+                        <TableCell>{sale.customerName}</TableCell>
+                        <TableCell>{sale.saleDate}</TableCell>
+                        <TableCell className="capitalize">{sale.productType}</TableCell>
+                        <TableCell>{sale.quantity}</TableCell>
+                        <TableCell>₹{sale.totalAmount}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusColor(sale.paymentStatus)}`}
+                          >
+                            {sale.paymentStatus.charAt(0).toUpperCase() + sale.paymentStatus.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="outline" size="icon" onClick={() => handleEdit(sale)}>
+                            <Edit2 size={16} />
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleDelete(sale.id)}>
+                            <Trash2 size={16} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -398,11 +466,11 @@ export default function SalesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Customer</Label>
-                    <div className="text-sm font-medium">{viewingSale.customer}</div>
+                    <div className="text-sm font-medium">{viewingSale.customerName}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Date</Label>
-                    <div className="text-sm font-medium">{viewingSale.date}</div>
+                    <div className="text-sm font-medium">{viewingSale.saleDate}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Product Type</Label>
