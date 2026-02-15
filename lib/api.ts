@@ -1,8 +1,14 @@
-// API service layer for backend communication
+/**
+ * API Client for Poultry Management System
+ * Connects to NestJS Backend at http://localhost:3001/api/v1
+ */
+
+// Base URL configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
-// Types
-export interface ApiResponse<T> {
+// TypeScript Interfaces
+export interface ApiResponse<T = any> {
+  success?: boolean;
   data?: T;
   message?: string;
   error?: string;
@@ -223,7 +229,7 @@ async function apiRequest<T>(
   };
 
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    (headers as Record<string, string>).Authorization = `Bearer ${token}`;
   }
 
   const config: RequestInit = {
@@ -769,7 +775,6 @@ export const api = {
   async getUserStatistics(): Promise<UserStatistics> {
     return apiRequest('/users/statistics/summary');
   },
-};
 
   // Settings Management
   async getSettings(): Promise<Setting[]> {
