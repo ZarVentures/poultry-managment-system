@@ -85,8 +85,6 @@ function getDatePresetRange(preset: DatePreset): { start: Date; end: Date } | nu
   }
 }
 
-const DateFilterContext = createContext<DateFilterContextType | undefined>(undefined)
-
 export function DateFilterProvider({ children }: { children: ReactNode }) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date | undefined>(undefined)

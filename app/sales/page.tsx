@@ -59,32 +59,6 @@ export default function SalesPage() {
       setLoading(false)
     }
   }
-    date: new Date().toISOString().split("T")[0],
-    quantity: "",
-    unitPrice: "",
-    paymentStatus: "pending",
-    notes: "",
-  })
-  const { startDate, endDate } = useDateFilter()
-
-  useEffect(() => {
-    setMounted(true)
-    loadSales()
-  }, [])
-
-  const loadSales = async () => {
-    try {
-      setLoading(true)
-      const data = await api.getSales()
-      setSales(data)
-    } catch (error) {
-      console.error("Error loading sales:", error)
-      toast.error("Failed to load sales")
-      setSales([])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSave = async () => {
     if (!formData.customerName || !formData.quantity || !formData.unitPrice) {
@@ -147,46 +121,6 @@ export default function SalesPage() {
       unitPrice: sale.unitPrice.toString(),
       paymentStatus: sale.paymentStatus,
       amountReceived: sale.amountReceived.toString(),
-      notes: sale.notes || "",
-    })
-    setShowDialog(true)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this sale?")) {
-      try {
-        await api.deleteSale(id)
-        toast.success("Sale deleted successfully")
-        await loadSales()
-      } catch (error) {
-        console.error("Error deleting sale:", error)
-        toast.error("Failed to delete sale")
-      }
-    }
-  }
-    }
-  }
-
-  const resetForm = () => {
-    setFormData({
-      customer: "",
-      date: new Date().toISOString().split("T")[0],
-      quantity: "",
-      unitPrice: "",
-      paymentStatus: "pending" as "paid" | "pending" | "partial",
-      notes: "",
-    })
-    setEditingId(null)
-  }
-
-  const handleEdit = (sale: Sale) => {
-    setEditingId(sale.id)
-    setFormData({
-      customer: sale.customerName,
-      date: sale.saleDate,
-      quantity: sale.quantity.toString(),
-      unitPrice: sale.unitPrice.toString(),
-      paymentStatus: sale.paymentStatus as "paid" | "pending" | "partial",
       notes: sale.notes || "",
     })
     setShowDialog(true)
@@ -270,8 +204,8 @@ export default function SalesPage() {
                   <div className="space-y-2">
                     <Label>Customer Name</Label>
                     <Input
-                      value={formData.customer}
-                      onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
+                      value={formData.customerName}
+                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                       placeholder="Customer name"
                     />
                   </div>
@@ -279,8 +213,8 @@ export default function SalesPage() {
                     <Label>Sale Date</Label>
                     <Input
                       type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      value={formData.saleDate}
+                      onChange={(e) => setFormData({ ...formData, saleDate: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
