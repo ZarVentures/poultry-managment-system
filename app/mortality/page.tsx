@@ -15,36 +15,80 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit2, Trash2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Plus, Edit2, Trash2, Download, Printer, X } from "lucide-react"
+import { DateRangeFilter } from "@/components/date-range-filter"
 import { useDateFilter } from "@/contexts/date-filter-context"
+
+interface Vehicle {
+  id: string
+  vehicleNumber: string
+  vehicleType: string
+  driverName: string
+  phone: string
+  status: "active" | "inactive"
+}
+
+interface PurchaseOrder {
+  id: string
+  purchaseInvoiceNo?: string
+  purchaseDate?: string
+  farmerName?: string
+  farmLocation?: string
+  vehicleNo?: string
+  numberOfBirds?: number
+  birdQuantity?: number
+}
 
 interface Mortality {
   id: string
   recordNumber: string
-  date: string
-  batch: string
-  numberOfBirds: number
+  purchaseInvoiceNo: string
+  purchaseDate: string
+  farmerName: string
+  farmLocation: string
+  vehicleNo: string
+  totalBirdsPurchased: number
+  numberOfBirdsDied: number
   cause: string
   notes: string
+  // Legacy fields for backward compatibility
+  date?: string
+  batch?: string
+  numberOfBirds?: number
 }
 
 export default function MortalityPage() {
   const [mortalities, setMortalities] = useState<Mortality[]>([])
+  const [purchases, setPurchases] = useState<PurchaseOrder[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingMortality, setViewingMortality] = useState<Mortality | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
+  const [searchQuery, setSearchQuery] = useState("")
   const [formData, setFormData] = useState<{
-    date: string
-    batch: string
-    numberOfBirds: string
+    purchaseInvoiceNo: string
+    purchaseDate: string
+    farmerName: string
+    farmLocation: string
+    vehicleNo: string
+    totalBirdsPurchased: string
+    numberOfBirdsDied: string
     cause: string
     notes: string
   }>({
-    date: new Date().toISOString().split("T")[0],
-    batch: "",
-    numberOfBirds: "",
+    purchaseInvoiceNo: "",
+    purchaseDate: new Date().toISOString().split("T")[0],
+    farmerName: "",
+    farmLocation: "",
+    vehicleNo: "",
+    totalBirdsPurchased: "",
+    numberOfBirdsDied: "",
     cause: "",
     notes: "",
   })
@@ -52,17 +96,89 @@ export default function MortalityPage() {
 
   useEffect(() => {
     setMounted(true)
+    
+    // Load mortalities from localStorage
     const saved = localStorage.getItem("mortalities")
     if (saved) {
       setMortalities(JSON.parse(saved))
     } else {
       setMortalities([])
     }
+    
+    // Fetch purchases from API
+    const fetchPurchases = async () => {
+      try {
+        const response = await fetch("/api/purchases")
+        if (response.ok) {
+          const data = await response.json()
+          setPurchases(data.data || [])
+        }
+      } catch (error) {
+        console.error("Error fetching purchases:", error)
+      }
+    }
+    
+    fetchPurchases()
+    
+    // Load vehicles from localStorage
+    const savedVehicles = localStorage.getItem("vehicles")
+    if (savedVehicles) {
+      const parsedVehicles = JSON.parse(savedVehicles)
+      setVehicles(parsedVehicles.filter((v: Vehicle) => v.status === "active"))
+    }
   }, [])
 
+  // Auto-fill fields when Purchase Invoice No is entered
+  const handlePurchaseInvoiceChange = (invoiceNo: string) => {
+    setFormData({ ...formData, purchaseInvoiceNo: invoiceNo })
+    
+    // Find purchase by invoice number
+    const purchase = purchases.find(
+      (p) => (p.purchaseInvoiceNo || "").toLowerCase() === invoiceNo.toLowerCase()
+    )
+    
+    if (purchase) {
+      setFormData({
+        ...formData,
+        purchaseInvoiceNo: invoiceNo,
+        purchaseDate: purchase.purchaseDate || purchase.date || new Date().toISOString().split("T")[0],
+        farmerName: purchase.farmerName || purchase.supplier || "",
+        farmLocation: purchase.farmLocation || "",
+        vehicleNo: purchase.vehicleNo || "",
+        totalBirdsPurchased: (purchase.numberOfBirds || purchase.birdQuantity || 0).toString(),
+      })
+    } else {
+      // Clear auto-fill fields if purchase not found
+      setFormData({
+        ...formData,
+        purchaseInvoiceNo: invoiceNo,
+        purchaseDate: new Date().toISOString().split("T")[0],
+        farmerName: "",
+        farmLocation: "",
+        vehicleNo: "",
+        totalBirdsPurchased: "",
+      })
+    }
+  }
+
+  // Auto-fill Farm Location when Farmer Name changes
+  useEffect(() => {
+    if (formData.farmerName && formData.purchaseInvoiceNo) {
+      const purchase = purchases.find(
+        (p) => (p.purchaseInvoiceNo || "").toLowerCase() === formData.purchaseInvoiceNo.toLowerCase()
+      )
+      if (purchase && purchase.farmerName === formData.farmerName) {
+        setFormData((prev) => ({
+          ...prev,
+          farmLocation: purchase.farmLocation || "",
+        }))
+      }
+    }
+  }, [formData.farmerName, formData.purchaseInvoiceNo, purchases])
+
   const handleSave = () => {
-    if (!formData.date || !formData.numberOfBirds) {
-      alert("Please fill all required fields")
+    if (!formData.purchaseInvoiceNo || !formData.purchaseDate || !formData.numberOfBirdsDied) {
+      alert("Please fill all required fields (Purchase Invoice No, Purchase Date, Number of Birds Died)")
       return
     }
 
@@ -76,11 +192,19 @@ export default function MortalityPage() {
         mortality.id === editingId
           ? {
               ...mortality,
-              date: formData.date,
-              batch: formData.batch,
-              numberOfBirds: Number.parseInt(formData.numberOfBirds),
+              purchaseInvoiceNo: formData.purchaseInvoiceNo,
+              purchaseDate: formData.purchaseDate,
+              farmerName: formData.farmerName,
+              farmLocation: formData.farmLocation,
+              vehicleNo: formData.vehicleNo,
+              totalBirdsPurchased: Number.parseInt(formData.totalBirdsPurchased) || 0,
+              numberOfBirdsDied: Number.parseInt(formData.numberOfBirdsDied),
               cause: formData.cause,
               notes: formData.notes,
+              // Legacy fields for backward compatibility
+              date: formData.purchaseDate,
+              batch: formData.farmerName,
+              numberOfBirds: Number.parseInt(formData.numberOfBirdsDied),
             }
           : mortality,
       )
@@ -90,11 +214,19 @@ export default function MortalityPage() {
         {
           id: Date.now().toString(),
           recordNumber: recordNumber || "",
-          date: formData.date,
-          batch: formData.batch,
-          numberOfBirds: Number.parseInt(formData.numberOfBirds),
+          purchaseInvoiceNo: formData.purchaseInvoiceNo,
+          purchaseDate: formData.purchaseDate,
+          farmerName: formData.farmerName,
+          farmLocation: formData.farmLocation,
+          vehicleNo: formData.vehicleNo,
+          totalBirdsPurchased: Number.parseInt(formData.totalBirdsPurchased) || 0,
+          numberOfBirdsDied: Number.parseInt(formData.numberOfBirdsDied),
           cause: formData.cause,
           notes: formData.notes,
+          // Legacy fields for backward compatibility
+          date: formData.purchaseDate,
+          batch: formData.farmerName,
+          numberOfBirds: Number.parseInt(formData.numberOfBirdsDied),
         },
       ]
     }
@@ -107,9 +239,13 @@ export default function MortalityPage() {
 
   const resetForm = () => {
     setFormData({
-      date: new Date().toISOString().split("T")[0],
-      batch: "",
-      numberOfBirds: "",
+      purchaseInvoiceNo: "",
+      purchaseDate: new Date().toISOString().split("T")[0],
+      farmerName: "",
+      farmLocation: "",
+      vehicleNo: "",
+      totalBirdsPurchased: "",
+      numberOfBirdsDied: "",
       cause: "",
       notes: "",
     })
@@ -119,11 +255,15 @@ export default function MortalityPage() {
   const handleEdit = (mortality: Mortality) => {
     setEditingId(mortality.id)
     setFormData({
-      date: mortality.date,
-      batch: mortality.batch,
-      numberOfBirds: mortality.numberOfBirds.toString(),
-      cause: mortality.cause,
-      notes: mortality.notes,
+      purchaseInvoiceNo: mortality.purchaseInvoiceNo || "",
+      purchaseDate: mortality.purchaseDate || mortality.date || new Date().toISOString().split("T")[0],
+      farmerName: mortality.farmerName || mortality.batch || "",
+      farmLocation: mortality.farmLocation || "",
+      vehicleNo: mortality.vehicleNo || "",
+      totalBirdsPurchased: mortality.totalBirdsPurchased?.toString() || "",
+      numberOfBirdsDied: mortality.numberOfBirdsDied?.toString() || mortality.numberOfBirds?.toString() || "",
+      cause: mortality.cause || "",
+      notes: mortality.notes || "",
     })
     setShowDialog(true)
   }
@@ -141,25 +281,217 @@ export default function MortalityPage() {
     setShowViewDialog(true)
   }
 
-  // Filter mortalities based on date range
+  // Filter mortalities based on date range and search
   const filteredMortalities = useMemo(() => {
-    if (!startDate || !endDate) return mortalities
+    let filtered = mortalities
 
-    return mortalities.filter((mortality) => {
-      const mortalityDate = new Date(mortality.date)
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      // Set time to start/end of day for proper comparison
+    // Apply date range filter (from date range picker in Mortality List section)
+    if (dateRangeStart && dateRangeEnd) {
+      const start = new Date(dateRangeStart)
+      const end = new Date(dateRangeEnd)
       start.setHours(0, 0, 0, 0)
       end.setHours(23, 59, 59, 999)
-      mortalityDate.setHours(0, 0, 0, 0)
 
-      return mortalityDate >= start && mortalityDate <= end
-    })
-  }, [mortalities, startDate, endDate])
+      filtered = filtered.filter((mortality) => {
+        const mortalityDate = new Date(mortality.purchaseDate || mortality.date || "")
+        mortalityDate.setHours(0, 0, 0, 0)
+        return mortalityDate >= start && mortalityDate <= end
+      })
+    }
 
-  const totalMortalities = filteredMortalities.reduce((sum, m) => sum + m.numberOfBirds, 0)
+    // Also apply global date filter if set (from context)
+    if (startDate && endDate) {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+
+      filtered = filtered.filter((mortality) => {
+        const mortalityDate = new Date(mortality.purchaseDate || mortality.date || "")
+        mortalityDate.setHours(0, 0, 0, 0)
+        return mortalityDate >= start && mortalityDate <= end
+      })
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(
+        (mortality) =>
+          (mortality.purchaseInvoiceNo || "").toLowerCase().includes(query) ||
+          (mortality.farmerName || mortality.batch || "").toLowerCase().includes(query),
+      )
+    }
+
+    return filtered
+  }, [mortalities, dateRangeStart, dateRangeEnd, startDate, endDate, searchQuery])
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+  }
+
+  const handleDownloadPDF = () => {
+    const filtered = filteredMortalities
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Mortality Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Mortality List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Records:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Purchase Invoice No.</th>
+                <th>Purchase Date</th>
+                <th>Farmer Name</th>
+                <th>Farm Location</th>
+                <th>Vehicle No</th>
+                <th>Total Birds Purchased</th>
+                <th>Number of Birds Died</th>
+                <th>Cause of Death</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(mortality => `
+                <tr>
+                  <td>${mortality.purchaseInvoiceNo || "N/A"}</td>
+                  <td>${mortality.purchaseDate || mortality.date || "N/A"}</td>
+                  <td>${mortality.farmerName || mortality.batch || "N/A"}</td>
+                  <td>${mortality.farmLocation || "N/A"}</td>
+                  <td>${mortality.vehicleNo || "N/A"}</td>
+                  <td>${(mortality.totalBirdsPurchased || 0).toLocaleString()}</td>
+                  <td>${(mortality.numberOfBirdsDied || mortality.numberOfBirds || 0).toLocaleString()}</td>
+                  <td>${mortality.cause || "N/A"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Create blob and download
+    const blob = new Blob([printContent], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `mortality-report-${new Date().toISOString().split('T')[0]}.html`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const handlePrintReport = () => {
+    const filtered = filteredMortalities
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Mortality Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Mortality List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Records:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Purchase Invoice No.</th>
+                <th>Purchase Date</th>
+                <th>Farmer Name</th>
+                <th>Farm Location</th>
+                <th>Vehicle No</th>
+                <th>Total Birds Purchased</th>
+                <th>Number of Birds Died</th>
+                <th>Cause of Death</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(mortality => `
+                <tr>
+                  <td>${mortality.purchaseInvoiceNo || "N/A"}</td>
+                  <td>${mortality.purchaseDate || mortality.date || "N/A"}</td>
+                  <td>${mortality.farmerName || mortality.batch || "N/A"}</td>
+                  <td>${mortality.farmLocation || "N/A"}</td>
+                  <td>${mortality.vehicleNo || "N/A"}</td>
+                  <td>${(mortality.totalBirdsPurchased || 0).toLocaleString()}</td>
+                  <td>${(mortality.numberOfBirdsDied || mortality.numberOfBirds || 0).toLocaleString()}</td>
+                  <td>${mortality.cause || "N/A"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
+  const totalBirdsPurchased = filteredMortalities.reduce((sum, m) => sum + (m.totalBirdsPurchased || 0), 0)
+  const totalBirdsDeath = filteredMortalities.reduce((sum, m) => sum + (m.numberOfBirdsDied || m.numberOfBirds || 0), 0)
   const totalRecords = filteredMortalities.length
+  
+  // Calculate Total Value - sum of purchase values for mortalities
+  const totalValue = useMemo(() => {
+    return filteredMortalities.reduce((sum, m) => {
+      if (m.purchaseInvoiceNo) {
+        const purchase = purchases.find(
+          (p) => (p.purchaseInvoiceNo || "").toLowerCase() === m.purchaseInvoiceNo.toLowerCase()
+        )
+        if (purchase) {
+          return sum + ((purchase as any).totalAmount || (purchase as any).totalValue || 0)
+        }
+      }
+      return sum
+    }, 0)
+  }, [filteredMortalities, purchases])
 
   if (!mounted) return null
 
@@ -175,41 +507,102 @@ export default function MortalityPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                Record Mortality
+                Add New Mortality
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{editingId ? "Edit Mortality Record" : "Record New Mortality"}</DialogTitle>
+                <DialogTitle>{editingId ? "Edit Mortality Record" : "Add New Mortality"}</DialogTitle>
                 <DialogDescription>Enter mortality details</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Date *</Label>
+                    <Label>Purchase Invoice No. <span className="text-red-500">*</span></Label>
                     <Input
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      value={formData.purchaseInvoiceNo}
+                      onChange={(e) => handlePurchaseInvoiceChange(e.target.value)}
+                      placeholder="Enter purchase invoice number"
+                      list="purchaseInvoices"
                     />
+                    <datalist id="purchaseInvoices">
+                      {purchases.map((purchase) => (
+                        <option key={purchase.id} value={purchase.purchaseInvoiceNo || ""} />
+                      ))}
+                    </datalist>
                   </div>
                   <div className="space-y-2">
-                    <Label>Batch/Group</Label>
+                    <Label>Purchase Date <span className="text-red-500">*</span></Label>
                     <Input
-                      value={formData.batch}
-                      onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
-                      placeholder="Batch number or group"
+                      type="date"
+                      value={formData.purchaseDate}
+                      onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Number of Birds *</Label>
+                    <Label>Farmer Name</Label>
+                    <Input
+                      value={formData.farmerName}
+                      onChange={(e) => setFormData({ ...formData, farmerName: e.target.value })}
+                      placeholder="Auto-fill from purchase invoice"
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Farm Location</Label>
+                    <Input
+                      value={formData.farmLocation}
+                      onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+                      placeholder="Auto-fill from farmer name"
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Vehicle No</Label>
+                    <Select
+                      value={formData.vehicleNo}
+                      onValueChange={(value) => setFormData({ ...formData, vehicleNo: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select vehicle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicles.map((vehicle) => (
+                          <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
+                            {vehicle.vehicleNumber}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total Birds Purchased</Label>
                     <Input
                       type="number"
-                      value={formData.numberOfBirds}
-                      onChange={(e) => setFormData({ ...formData, numberOfBirds: e.target.value })}
+                      value={formData.totalBirdsPurchased}
+                      onChange={(e) => setFormData({ ...formData, totalBirdsPurchased: e.target.value })}
+                      placeholder="Auto-fill from purchase invoice"
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Number of Birds Died <span className="text-red-500">*</span></Label>
+                    <Input
+                      type="number"
+                      value={formData.numberOfBirdsDied}
+                      onChange={(e) => setFormData({ ...formData, numberOfBirdsDied: e.target.value })}
                       placeholder="0"
                     />
                   </div>
@@ -225,15 +618,16 @@ export default function MortalityPage() {
 
                 <div className="space-y-2">
                   <Label>Notes</Label>
-                  <Input
+                  <Textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     placeholder="Additional notes"
+                    rows={3}
                   />
                 </div>
 
                 <Button onClick={handleSave} className="w-full">
-                  {editingId ? "Update" : "Record"} Mortality
+                  {editingId ? "Update" : "Add"} Mortality
                 </Button>
               </div>
             </DialogContent>
@@ -243,56 +637,104 @@ export default function MortalityPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Records</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Birds Purchase (Qty)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{totalRecords}</div>
+              <div className="text-3xl font-bold">{totalBirdsPurchased}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Mortalities</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Birds Death (Qty)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{totalMortalities}</div>
+              <div className="text-3xl font-bold">{totalBirdsDeath}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Average per Record</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Value (rs)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
-                {totalRecords > 0 ? (totalMortalities / totalRecords).toFixed(1) : "0"}
-              </div>
+              <div className="text-3xl font-bold">₹{totalValue.toFixed(2)}</div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Mortality Records</CardTitle>
-            <CardDescription>View and manage all mortality records</CardDescription>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle>Mortality List</CardTitle>
+                <CardDescription>View and manage all mortality records</CardDescription>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <DateRangeFilter
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Filter:</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search by invoice or farmer name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-[200px]"
+                    />
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSearchQuery("")}
+                        className="h-10 w-10"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                >
+                  <Download className="mr-2" size={16} />
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintReport}
+                >
+                  <Printer className="mr-2" size={16} />
+                  Print Report
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Record #</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Batch/Group</TableHead>
-                    <TableHead>Number of Birds</TableHead>
-                    <TableHead>Cause</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>Purchase Invoice No.</TableHead>
+                    <TableHead>Purchase Date</TableHead>
+                    <TableHead>Farmer Name</TableHead>
+                    <TableHead>Farm Location</TableHead>
+                    <TableHead>Vehicle No</TableHead>
+                    <TableHead>Total Birds Purchased</TableHead>
+                    <TableHead>Number of Birds Died</TableHead>
+                    <TableHead>Cause of Death</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredMortalities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        No mortality records found. Click "Record Mortality" to get started.
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                        {searchQuery || (dateRangeStart && dateRangeEnd) ? "No mortality records found matching your filters." : "No mortality records found. Click \"Add New Mortality\" to get started."}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -302,12 +744,14 @@ export default function MortalityPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(mortality)}
                       >
-                        <TableCell className="font-medium">{mortality.recordNumber}</TableCell>
-                        <TableCell>{mortality.date}</TableCell>
-                        <TableCell>{mortality.batch || "N/A"}</TableCell>
-                        <TableCell>{mortality.numberOfBirds}</TableCell>
+                        <TableCell className="font-medium">{mortality.purchaseInvoiceNo || "N/A"}</TableCell>
+                        <TableCell>{mortality.purchaseDate || mortality.date || "N/A"}</TableCell>
+                        <TableCell>{mortality.farmerName || mortality.batch || "N/A"}</TableCell>
+                        <TableCell>{mortality.farmLocation || "N/A"}</TableCell>
+                        <TableCell>{mortality.vehicleNo || "N/A"}</TableCell>
+                        <TableCell>{mortality.totalBirdsPurchased || 0}</TableCell>
+                        <TableCell>{mortality.numberOfBirdsDied || mortality.numberOfBirds || 0}</TableCell>
                         <TableCell>{mortality.cause || "N/A"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{mortality.notes || "N/A"}</TableCell>
                         <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(mortality)}>
                             <Edit2 size={16} />
@@ -340,16 +784,32 @@ export default function MortalityPage() {
                     <div className="text-sm font-medium">{viewingMortality.recordNumber}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Date</Label>
-                    <div className="text-sm font-medium">{viewingMortality.date}</div>
+                    <Label className="text-muted-foreground">Purchase Invoice No.</Label>
+                    <div className="text-sm font-medium">{viewingMortality.purchaseInvoiceNo || "N/A"}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Batch/Group</Label>
-                    <div className="text-sm font-medium">{viewingMortality.batch || "N/A"}</div>
+                    <Label className="text-muted-foreground">Purchase Date</Label>
+                    <div className="text-sm font-medium">{viewingMortality.purchaseDate || viewingMortality.date || "N/A"}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Number of Birds</Label>
-                    <div className="text-sm font-medium">{viewingMortality.numberOfBirds}</div>
+                    <Label className="text-muted-foreground">Farmer Name</Label>
+                    <div className="text-sm font-medium">{viewingMortality.farmerName || viewingMortality.batch || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Farm Location</Label>
+                    <div className="text-sm font-medium">{viewingMortality.farmLocation || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Vehicle No</Label>
+                    <div className="text-sm font-medium">{viewingMortality.vehicleNo || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Total Birds Purchased</Label>
+                    <div className="text-sm font-medium">{viewingMortality.totalBirdsPurchased || "N/A"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Number of Birds Died</Label>
+                    <div className="text-sm font-medium">{viewingMortality.numberOfBirdsDied || viewingMortality.numberOfBirds || 0}</div>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label className="text-muted-foreground">Cause of Death</Label>
