@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -16,159 +15,176 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Plus, Edit2, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2, AlertTriangle, Package, TrendingDown, Search, X } from "lucide-react"
-import { api, InventoryItem } from "@/lib/api"
-import { toast } from "sonner"
 import { useDateFilter } from "@/contexts/date-filter-context"
 
+interface Farmer {
+  id: string
+  name: string
+  email: string
+  phone: string
+  address: string
+  birdCount: number
+  joinDate: string
+}
+
+interface GodownItem {
+  id: string
+  orderNumber: string
+  supplierName: string
+  noOfCages: number
+  noOfBirds: number
+  purchaseRate: number
+  totalValue: number
+  lastUpdated: string
+}
+
 export default function InventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [godownItems, setGodownItems] = useState<GodownItem[]>([])
+  const [farmers, setFarmers] = useState<Farmer[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
-  const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null)
+  const [viewingItem, setViewingItem] = useState<GodownItem | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showSearchFilter, setShowSearchFilter] = useState(false)
-  const [filterType, setFilterType] = useState<string>("all")
   const [formData, setFormData] = useState({
-    itemType: "feed",
-    itemName: "",
-    quantity: "",
-    unit: "kg",
-    minimumStockLevel: "",
-    currentStockLevel: "",
-    notes: "",
+    orderNumber: "",
+    supplierName: "",
+    noOfCages: "",
+    noOfBirds: "",
+    purchaseRate: "",
   })
   const { startDate, endDate } = useDateFilter()
 
   useEffect(() => {
     setMounted(true)
-    loadInventory()
+    // Load godown items from localStorage
+    const saved = localStorage.getItem("godown")
+    if (saved) {
+      setGodownItems(JSON.parse(saved))
+    } else {
+      setGodownItems([])
+    }
+
+    // Load farmers for supplier dropdown
+    const savedFarmers = localStorage.getItem("farmers")
+    if (savedFarmers) {
+      setFarmers(JSON.parse(savedFarmers))
+    } else {
+      // Default farmers if none exist
+      setFarmers([
+        {
+          id: "1",
+          name: "Ahmed Khan",
+          email: "ahmed@example.com",
+          phone: "+91 98765 43210",
+          address: "Village A, District X",
+          birdCount: 0,
+          joinDate: "2024-01-15",
+        },
+        {
+          id: "2",
+          name: "Mohammed Ali",
+          email: "mohammed@example.com",
+          phone: "+91 98765 43211",
+          address: "Village B, District Y",
+          birdCount: 0,
+          joinDate: "2024-02-20",
+        },
+      ])
+    }
   }, [])
 
-  const loadInventory = async () => {
-    try {
-      setLoading(true)
-      const data = await api.getInventoryItems()
-      setItems(data)
-    } catch (error) {
-      console.error("Error loading inventory:", error)
-      toast.error("Failed to load inventory")
-      setItems([])
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Calculate total value automatically
+  const totalValue = useMemo(() => {
+    const birds = Number.parseFloat(formData.noOfBirds) || 0
+    const rate = Number.parseFloat(formData.purchaseRate) || 0
+    return birds * rate
+  }, [formData.noOfBirds, formData.purchaseRate])
 
-  const handleSave = async () => {
-    if (!formData.itemName || !formData.quantity || !formData.minimumStockLevel || !formData.currentStockLevel) {
-      toast.error("Please fill all required fields")
+  const handleSave = () => {
+    if (!formData.orderNumber || !formData.supplierName || !formData.noOfCages || !formData.noOfBirds || !formData.purchaseRate) {
+      alert("Please fill all required fields")
       return
     }
 
-    try {
-      const itemData = {
-        itemType: formData.itemType,
-        itemName: formData.itemName,
-        quantity: parseFloat(formData.quantity),
-        unit: formData.unit,
-        minimumStockLevel: parseFloat(formData.minimumStockLevel),
-        currentStockLevel: parseFloat(formData.currentStockLevel),
-        notes: formData.notes,
-      }
-
-      if (editingId) {
-        await api.updateInventoryItem(editingId, itemData)
-        toast.success("Inventory item updated successfully")
-      } else {
-        await api.createInventoryItem(itemData)
-        toast.success("Inventory item added successfully")
-      }
-
-      await loadInventory()
-      resetForm()
-      setShowDialog(false)
-    } catch (error) {
-      console.error("Error saving inventory item:", error)
-      toast.error("Failed to save inventory item")
+    const newItem: GodownItem = {
+      id: editingId || Date.now().toString(),
+      orderNumber: formData.orderNumber,
+      supplierName: formData.supplierName,
+      noOfCages: Number.parseInt(formData.noOfCages),
+      noOfBirds: Number.parseInt(formData.noOfBirds),
+      purchaseRate: Number.parseFloat(formData.purchaseRate),
+      totalValue: totalValue,
+      lastUpdated: new Date().toISOString().split("T")[0],
     }
+
+    if (editingId) {
+      const updated = godownItems.map((item) => (item.id === editingId ? newItem : item))
+      setGodownItems(updated)
+      localStorage.setItem("godown", JSON.stringify(updated))
+    } else {
+      const updated = [...godownItems, newItem]
+      setGodownItems(updated)
+      localStorage.setItem("godown", JSON.stringify(updated))
+    }
+
+    resetForm()
+    setShowDialog(false)
   }
 
   const resetForm = () => {
     setFormData({
-      itemType: "feed",
-      itemName: "",
-      quantity: "",
-      unit: "kg",
-      minimumStockLevel: "",
-      currentStockLevel: "",
-      notes: "",
+      orderNumber: "",
+      supplierName: "",
+      noOfCages: "",
+      noOfBirds: "",
+      purchaseRate: "",
     })
     setEditingId(null)
   }
 
-  const handleEdit = (item: InventoryItem) => {
+  const handleEdit = (item: GodownItem) => {
     setEditingId(item.id)
     setFormData({
-      itemType: item.itemType,
-      itemName: item.itemName,
-      quantity: item.quantity.toString(),
-      unit: item.unit,
-      minimumStockLevel: item.minimumStockLevel.toString(),
-      currentStockLevel: item.currentStockLevel.toString(),
-      notes: item.notes || "",
+      orderNumber: item.orderNumber,
+      supplierName: item.supplierName,
+      noOfCages: item.noOfCages.toString(),
+      noOfBirds: item.noOfBirds.toString(),
+      purchaseRate: item.purchaseRate.toString(),
     })
     setShowDialog(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this inventory item?")) {
-      try {
-        await api.deleteInventoryItem(id)
-        toast.success("Inventory item deleted successfully")
-        await loadInventory()
-      } catch (error) {
-        console.error("Error deleting inventory item:", error)
-        toast.error("Failed to delete inventory item")
-      }
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this item?")) {
+      const updated = godownItems.filter((item) => item.id !== id)
+      setGodownItems(updated)
+      localStorage.setItem("godown", JSON.stringify(updated))
     }
   }
 
-  const handleView = (item: InventoryItem) => {
+  const handleView = (item: GodownItem) => {
     setViewingItem(item)
     setShowViewDialog(true)
   }
 
-  const isLowStock = (item: InventoryItem) => {
-    return item.currentStockLevel <= item.minimumStockLevel
-  }
+  // Filter godown items based on date range
+  const filteredItems = useMemo(() => {
+    if (!startDate || !endDate) return godownItems
 
-  const getFilteredItems = () => {
-    let filtered = items
+    return godownItems.filter((item) => {
+      const itemDate = new Date(item.lastUpdated)
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+      itemDate.setHours(0, 0, 0, 0)
 
-    // Apply type filter
-    if (filterType !== "all") {
-      filtered = filtered.filter(item => item.itemType === filterType)
-    }
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter(
-        item =>
-          item.itemName.toLowerCase().includes(query) ||
-          item.itemType.toLowerCase().includes(query)
-      )
-    }
-
-    return filtered
-  }
-
-  const lowStockItems = items.filter(isLowStock)
-  const filteredItems = getFilteredItems()
+      return itemDate >= start && itemDate <= end
+    })
+  }, [godownItems, startDate, endDate])
 
   if (!mounted) return null
 
@@ -177,8 +193,8 @@ export default function InventoryPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Inventory Management</h1>
-            <p className="text-muted-foreground">Track stock levels and manage inventory items</p>
+            <h1 className="text-3xl font-bold">Godown Management</h1>
+            <p className="text-muted-foreground">Track birds, cages, and purchases</p>
           </div>
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogTrigger asChild>
@@ -189,94 +205,81 @@ export default function InventoryPage() {
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{editingId ? "Edit Inventory Item" : "Add New Inventory Item"}</DialogTitle>
-                <DialogDescription>Enter item details</DialogDescription>
+                <DialogTitle>{editingId ? "Edit Item" : "Add New Item"}</DialogTitle>
+                <DialogDescription>Enter godown details</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Order # *</Label>
+                  <Input
+                    value={formData.orderNumber}
+                    onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
+                    placeholder="e.g., ORD-001"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Supplier Name *</Label>
+                  <Select
+                    value={formData.supplierName}
+                    onValueChange={(value) => setFormData({ ...formData, supplierName: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select supplier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {farmers.length === 0 ? (
+                        <SelectItem value="" disabled>No farmers available. Add farmers first.</SelectItem>
+                      ) : (
+                        farmers.map((farmer) => (
+                          <SelectItem key={farmer.id} value={farmer.name}>
+                            {farmer.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Item Type *</Label>
-                    <Select
-                      value={formData.itemType}
-                      onValueChange={(value) => setFormData({ ...formData, itemType: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="feed">Feed</SelectItem>
-                        <SelectItem value="medicine">Medicine</SelectItem>
-                        <SelectItem value="equipment">Equipment</SelectItem>
-                        <SelectItem value="supplies">Supplies</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Item Name *</Label>
-                    <Input
-                      value={formData.itemName}
-                      onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
-                      placeholder="Item name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Quantity *</Label>
+                    <Label>No of Cage # *</Label>
                     <Input
                       type="number"
-                      step="0.01"
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      value={formData.noOfCages}
+                      onChange={(e) => setFormData({ ...formData, noOfCages: e.target.value })}
                       placeholder="0"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Unit *</Label>
-                    <Select
-                      value={formData.unit}
-                      onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="kg">Kilograms (kg)</SelectItem>
-                        <SelectItem value="liters">Liters</SelectItem>
-                        <SelectItem value="pcs">Pieces (pcs)</SelectItem>
-                        <SelectItem value="bags">Bags</SelectItem>
-                        <SelectItem value="bottles">Bottles</SelectItem>
-                        <SelectItem value="doses">Doses</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Minimum Stock Level *</Label>
+                    <Label>No of Birds # *</Label>
                     <Input
                       type="number"
-                      step="0.01"
-                      value={formData.minimumStockLevel}
-                      onChange={(e) => setFormData({ ...formData, minimumStockLevel: e.target.value })}
+                      value={formData.noOfBirds}
+                      onChange={(e) => setFormData({ ...formData, noOfBirds: e.target.value })}
                       placeholder="0"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Current Stock Level *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.currentStockLevel}
-                      onChange={(e) => setFormData({ ...formData, currentStockLevel: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Notes</Label>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Additional notes about this item"
-                      rows={3}
-                    />
-                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Purchase Rate # *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.purchaseRate}
+                    onChange={(e) => setFormData({ ...formData, purchaseRate: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Value</Label>
+                  <Input
+                    type="text"
+                    value={`₹${totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    readOnly
+                    className="bg-muted font-semibold"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Auto-calculated: No of Birds × Purchase Rate
+                  </p>
                 </div>
                 <Button onClick={handleSave} className="w-full">
                   {editingId ? "Update" : "Add"} Item
@@ -286,207 +289,56 @@ export default function InventoryPage() {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Package size={16} />
-                Total Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{loading ? "..." : items.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <AlertTriangle size={16} className="text-red-500" />
-                Low Stock Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-600">
-                {loading ? "..." : lowStockItems.length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingDown size={16} />
-                Feed Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {loading ? "..." : items.filter(i => i.itemType === "feed").length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Medicine Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {loading ? "..." : items.filter(i => i.itemType === "medicine").length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {lowStockItems.length > 0 && (
-          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
-            <CardHeader>
-              <CardTitle className="text-red-700 dark:text-red-400 flex items-center gap-2">
-                <AlertTriangle size={20} />
-                Low Stock Alert
-              </CardTitle>
-              <CardDescription className="text-red-600 dark:text-red-300">
-                {lowStockItems.length} item(s) are at or below minimum stock level
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {lowStockItems.slice(0, 5).map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-2 bg-white dark:bg-gray-900 rounded">
-                    <div>
-                      <p className="font-medium">{item.itemName}</p>
-                      <p className="text-sm text-muted-foreground capitalize">{item.itemType}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-red-600">
-                        {item.currentStockLevel} {item.unit}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Min: {item.minimumStockLevel} {item.unit}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle>Inventory Items</CardTitle>
-                <CardDescription>View and manage all inventory items</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="feed">Feed</SelectItem>
-                    <SelectItem value="medicine">Medicine</SelectItem>
-                    <SelectItem value="equipment">Equipment</SelectItem>
-                    <SelectItem value="supplies">Supplies</SelectItem>
-                  </SelectContent>
-                </Select>
-                {showSearchFilter && (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Search items..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSearchQuery("")
-                        setShowSearchFilter(false)
-                      }}
-                    >
-                      <X size={16} />
-                    </Button>
-                  </div>
-                )}
-                {!showSearchFilter && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSearchFilter(true)}
-                  >
-                    <Search className="mr-2" size={16} />
-                    Search
-                  </Button>
-                )}
-              </div>
-            </div>
+            <CardTitle>Godown Items</CardTitle>
+            <CardDescription>Manage all godown items and inventory</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Current Stock</TableHead>
-                    <TableHead>Min Stock</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Order #</TableHead>
+                    <TableHead>Supplier Name</TableHead>
+                    <TableHead>No of Cages</TableHead>
+                    <TableHead>No of Birds</TableHead>
+                    <TableHead>Purchase Rate</TableHead>
+                    <TableHead>Total Value</TableHead>
+                    <TableHead>Last Updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {filteredItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        Loading inventory...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        {searchQuery || filterType !== "all" 
-                          ? "No items found matching your filters." 
-                          : "No inventory items yet. Click \"Add Item\" to get started."}
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                        No items found. Click "Add Item" to add new godown entries.
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredItems.map((item) => (
-                      <TableRow
+                      <TableRow 
                         key={item.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(item)}
                       >
-                        <TableCell className="font-medium">{item.itemName}</TableCell>
-                        <TableCell className="capitalize">{item.itemType}</TableCell>
-                        <TableCell className={isLowStock(item) ? "text-red-600 font-bold" : ""}>
-                          {item.currentStockLevel}
-                        </TableCell>
-                        <TableCell>{item.minimumStockLevel}</TableCell>
-                        <TableCell>{item.unit}</TableCell>
-                        <TableCell>
-                          {isLowStock(item) ? (
-                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 flex items-center gap-1 w-fit">
-                              <AlertTriangle size={12} />
-                              Low Stock
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                              In Stock
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="outline" size="icon" onClick={() => handleEdit(item)}>
-                            <Edit2 size={16} />
-                          </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleDelete(item.id)}>
-                            <Trash2 size={16} />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        <TableCell className="font-medium">{item.orderNumber}</TableCell>
+                        <TableCell>{item.supplierName}</TableCell>
+                        <TableCell>{item.noOfCages.toLocaleString()}</TableCell>
+                        <TableCell>{item.noOfBirds.toLocaleString()}</TableCell>
+                        <TableCell>₹{item.purchaseRate.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="font-semibold">₹{item.totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{item.lastUpdated}</TableCell>
+                      <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="outline" size="icon" onClick={() => handleEdit(item)}>
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => handleDelete(item.id)}>
+                          <Trash2 size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                     ))
                   )}
                 </TableBody>
@@ -499,65 +351,40 @@ export default function InventoryPage() {
         <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Inventory Item Details</DialogTitle>
+              <DialogTitle>Godown Item Details</DialogTitle>
               <DialogDescription>View complete item information</DialogDescription>
             </DialogHeader>
             {viewingItem && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Item Name</Label>
-                    <div className="text-sm font-medium">{viewingItem.itemName}</div>
+                    <Label className="text-muted-foreground">Order Number</Label>
+                    <div className="text-sm font-medium">{viewingItem.orderNumber}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Type</Label>
-                    <div className="text-sm font-medium capitalize">{viewingItem.itemType}</div>
+                    <Label className="text-muted-foreground">Supplier Name</Label>
+                    <div className="text-sm font-medium">{viewingItem.supplierName}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Quantity</Label>
-                    <div className="text-sm font-medium">{viewingItem.quantity} {viewingItem.unit}</div>
+                    <Label className="text-muted-foreground">Number of Cages</Label>
+                    <div className="text-sm font-medium">{viewingItem.noOfCages.toLocaleString()}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Unit</Label>
-                    <div className="text-sm font-medium">{viewingItem.unit}</div>
+                    <Label className="text-muted-foreground">Number of Birds</Label>
+                    <div className="text-sm font-medium">{viewingItem.noOfBirds.toLocaleString()}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Current Stock Level</Label>
-                    <div className={`text-sm font-medium ${isLowStock(viewingItem) ? "text-red-600 font-bold" : ""}`}>
-                      {viewingItem.currentStockLevel} {viewingItem.unit}
-                    </div>
+                    <Label className="text-muted-foreground">Purchase Rate</Label>
+                    <div className="text-sm font-medium">₹{viewingItem.purchaseRate.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Minimum Stock Level</Label>
-                    <div className="text-sm font-medium">{viewingItem.minimumStockLevel} {viewingItem.unit}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Status</Label>
-                    <div>
-                      {isLowStock(viewingItem) ? (
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 flex items-center gap-1 w-fit">
-                          <AlertTriangle size={12} />
-                          Low Stock
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                          In Stock
-                        </span>
-                      )}
-                    </div>
+                    <Label className="text-muted-foreground">Total Value</Label>
+                    <div className="text-sm font-medium font-semibold">₹{viewingItem.totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Last Updated</Label>
-                    <div className="text-sm font-medium">
-                      {viewingItem.lastUpdated ? new Date(viewingItem.lastUpdated).toLocaleString() : "N/A"}
-                    </div>
+                    <div className="text-sm font-medium">{viewingItem.lastUpdated}</div>
                   </div>
-                  {viewingItem.notes && (
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-muted-foreground">Notes</Label>
-                      <div className="text-sm font-medium whitespace-pre-wrap">{viewingItem.notes}</div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}

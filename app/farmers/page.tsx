@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,20 +17,24 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
-import { api, Farmer } from "@/lib/api"
-import { toast } from "sonner"
+import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X, Download, Printer } from "lucide-react"
+import { DateRangeFilter } from "@/components/date-range-filter"
 
-interface FarmerFormData {
+interface Farmer {
+  id: string
   name: string
+  email: string
   phone: string
   address: string
-  notes: string
+  birdCount: number
+  joinDate: string
+  status: "active" | "inactive"
+  note?: string
+  farmhouseName?: string
 }
 
 export default function FarmersPage() {
   const [farmers, setFarmers] = useState<Farmer[]>([])
-  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
@@ -38,63 +42,90 @@ export default function FarmersPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showSearchFilter, setShowSearchFilter] = useState(false)
-  const [formData, setFormData] = useState<FarmerFormData>({
+  const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
+  const [formData, setFormData] = useState({
     name: "",
     phone: "",
     address: "",
-    notes: "",
+    joinDate: new Date().toISOString().split("T")[0],
+    status: "active" as "active" | "inactive",
+    note: "",
+    farmhouseName: "",
   })
 
   useEffect(() => {
     setMounted(true)
-    loadFarmers()
+    const savedFarmers = localStorage.getItem("farmers")
+    if (savedFarmers) {
+      const parsed = JSON.parse(savedFarmers)
+      // Add status field for backward compatibility
+      const farmersWithStatus = parsed.map((farmer: Farmer) => ({
+        ...farmer,
+        status: farmer.status || "active",
+      }))
+      setFarmers(farmersWithStatus)
+      // Update localStorage with status field
+      localStorage.setItem("farmers", JSON.stringify(farmersWithStatus))
+    } else {
+      setFarmers([])
+    }
   }, [])
 
-  const loadFarmers = async () => {
-    try {
-      setLoading(true)
-      const data = await api.getFarmers()
-      setFarmers(data)
-    } catch (error) {
-      console.error("Error loading farmers:", error)
-      toast.error("Failed to load farmers")
-      setFarmers([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!formData.name || !formData.phone) {
-      toast.error("Please fill all required fields")
+      alert("Please fill all required fields")
       return
     }
 
-    try {
-      if (editingId) {
-        await api.updateFarmer(editingId, formData)
-        toast.success("Farmer updated successfully")
-      } else {
-        await api.createFarmer(formData)
-        toast.success("Farmer added successfully")
+    if (editingId) {
+      const updated = farmers.map((farmer) =>
+        farmer.id === editingId
+          ? {
+              ...farmer,
+              name: formData.name,
+              phone: formData.phone,
+              address: formData.address,
+              joinDate: formData.joinDate,
+              status: formData.status,
+              note: formData.note,
+              farmhouseName: formData.farmhouseName,
+            }
+          : farmer,
+      )
+      setFarmers(updated)
+      localStorage.setItem("farmers", JSON.stringify(updated))
+    } else {
+      const newFarmer: Farmer = {
+        id: Date.now().toString(),
+        name: formData.name,
+        email: "", // Keep for backward compatibility
+        phone: formData.phone,
+        address: formData.address,
+        birdCount: 0, // Keep for backward compatibility
+        joinDate: formData.joinDate,
+        status: formData.status,
+        note: formData.note,
+        farmhouseName: formData.farmhouseName,
       }
-      
-      await loadFarmers()
-      resetForm()
-      setShowDialog(false)
-    } catch (error) {
-      console.error("Error saving farmer:", error)
-      toast.error("Failed to save farmer")
+      const updated = [...farmers, newFarmer]
+      setFarmers(updated)
+      localStorage.setItem("farmers", JSON.stringify(updated))
     }
-  }
+
+    resetForm()
+    setShowDialog(false)
+    }
 
   const resetForm = () => {
     setFormData({
       name: "",
       phone: "",
       address: "",
-      notes: "",
+      joinDate: new Date().toISOString().split("T")[0],
+      status: "active" as "active" | "inactive",
+      note: "",
+      farmhouseName: "",
     })
     setEditingId(null)
   }
@@ -103,23 +134,21 @@ export default function FarmersPage() {
     setEditingId(farmer.id)
     setFormData({
       name: farmer.name,
-      phone: farmer.phone || "",
-      address: farmer.address || "",
-      notes: farmer.notes || "",
+      phone: farmer.phone,
+      address: farmer.address,
+      joinDate: farmer.joinDate || new Date().toISOString().split("T")[0],
+      status: farmer.status || "active",
+      note: farmer.note || "",
+      farmhouseName: farmer.farmhouseName || "",
     })
     setShowDialog(true)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this farmer?")) {
-      try {
-        await api.deleteFarmer(id)
-        toast.success("Farmer deleted successfully")
-        await loadFarmers()
-      } catch (error) {
-        console.error("Error deleting farmer:", error)
-        toast.error("Failed to delete farmer")
-      }
+      const updated = farmers.filter((farmer) => farmer.id !== id)
+      setFarmers(updated)
+      localStorage.setItem("farmers", JSON.stringify(updated))
     }
   }
 
@@ -140,6 +169,21 @@ export default function FarmersPage() {
 
   const getFilteredAndSortedFarmers = () => {
     let filtered = farmers
+
+    // Apply date range filter
+    if (dateRangeStart && dateRangeEnd) {
+      const start = new Date(dateRangeStart)
+      const end = new Date(dateRangeEnd)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+
+      filtered = filtered.filter((farmer) => {
+        if (!farmer.joinDate) return false
+        const joinDate = new Date(farmer.joinDate)
+        joinDate.setHours(0, 0, 0, 0)
+        return joinDate >= start && joinDate <= end
+      })
+    }
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -167,6 +211,147 @@ export default function FarmersPage() {
     return filtered
   }
 
+  const filteredFarmers = useMemo(() => getFilteredAndSortedFarmers(), [farmers, dateRangeStart, dateRangeEnd, searchQuery, sortOrder])
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+  }
+
+  const handleDownloadPDF = () => {
+    const filtered = getFilteredAndSortedFarmers()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Farmers Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Farmers List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Farmers:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Farm House Name</th>
+                <th>Farmer Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(farmer => `
+                <tr>
+                  <td>${farmer.farmhouseName || "N/A"}</td>
+                  <td>${farmer.name}</td>
+                  <td>${farmer.phone}</td>
+                  <td>${farmer.address || "N/A"}</td>
+                  <td>${farmer.joinDate}</td>
+                  <td>${(farmer.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
+  const handlePrintReport = () => {
+    const filtered = getFilteredAndSortedFarmers()
+    
+    // Create a printable HTML content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Farmers Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .date-range { margin-bottom: 10px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Farmers List Report</h1>
+            ${dateRangeStart && dateRangeEnd ? `<div class="date-range"><strong>Date Range:</strong> ${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}</div>` : ''}
+            <div><strong>Total Farmers:</strong> ${filtered.length}</div>
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Farm House Name</th>
+                <th>Farmer Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Join Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(farmer => `
+                <tr>
+                  <td>${farmer.farmhouseName || "N/A"}</td>
+                  <td>${farmer.name}</td>
+                  <td>${farmer.phone}</td>
+                  <td>${farmer.address || "N/A"}</td>
+                  <td>${farmer.joinDate}</td>
+                  <td>${(farmer.status || "active") === "active" ? "Active" : "Inactive"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Open new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+
   if (!mounted) return null
 
   return (
@@ -181,7 +366,7 @@ export default function FarmersPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                Add Farmer
+                Add New Farmer
         </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -192,11 +377,19 @@ export default function FarmersPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Name *</Label>
+                    <Label>Farmer Name *</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Farmer name"
+                  />
+                </div>
+                  <div className="space-y-2">
+                    <Label>Farm House Name</Label>
+                  <Input
+                    value={formData.farmhouseName}
+                    onChange={(e) => setFormData({ ...formData, farmhouseName: e.target.value })}
+                      placeholder="Farm House name"
                   />
                 </div>
                   <div className="space-y-2">
@@ -207,6 +400,29 @@ export default function FarmersPage() {
                       placeholder="Phone number"
                   />
                 </div>
+                  <div className="space-y-2">
+                    <Label>Join Date *</Label>
+                  <Input
+                      type="date"
+                      value={formData.joinDate}
+                      onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
+                  />
+                </div>
+                  <div className="space-y-2">
+                    <Label>Status *</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>Address</Label>
                   <Input
@@ -216,10 +432,10 @@ export default function FarmersPage() {
                   />
                 </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Notes</Label>
+                    <Label>Note</Label>
                     <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      value={formData.note}
+                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
                       placeholder="Additional notes about the farmer"
                       rows={3}
                     />
@@ -239,7 +455,7 @@ export default function FarmersPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Farmers</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{loading ? "..." : farmers.length}</div>
+              <div className="text-3xl font-bold">{farmers.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -248,22 +464,17 @@ export default function FarmersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {loading ? "..." : farmers.length}
+                {farmers.filter((f) => (f.status || "active") === "active").length}
               </div>
           </CardContent>
         </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Recent Additions</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Inactive Farmers</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {loading ? "..." : farmers.filter(f => {
-                  const createdDate = new Date(f.createdAt || "")
-                  const thirtyDaysAgo = new Date()
-                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-                  return createdDate > thirtyDaysAgo
-                }).length}
+                {farmers.filter((f) => (f.status || "active") === "inactive").length}
               </div>
             </CardContent>
           </Card>
@@ -276,37 +487,49 @@ export default function FarmersPage() {
                 <CardTitle>Farmers List</CardTitle>
                 <CardDescription>View and manage all farmers</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                {showSearchFilter && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <DateRangeFilter
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Filter:</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Search by name or phone..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64"
+                      className="w-[200px]"
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSearchQuery("")
-                        setShowSearchFilter(false)
-                      }}
-                    >
-                      <X size={16} />
-                    </Button>
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSearchQuery("")}
+                        className="h-10 w-10"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
                   </div>
-                )}
-                {!showSearchFilter && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSearchFilter(true)}
-                  >
-                    <Search className="mr-2" size={16} />
-                    Filter
-                  </Button>
-                )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                >
+                  <Download className="mr-2" size={16} />
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintReport}
+                >
+                  <Printer className="mr-2" size={16} />
+                  Print Report
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -315,6 +538,7 @@ export default function FarmersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Farm House Name</TableHead>
                     <TableHead>
                       <Button
                         variant="ghost"
@@ -322,7 +546,7 @@ export default function FarmersPage() {
                         className="h-8 px-2 lg:px-3"
                         onClick={handleSort}
                       >
-                        Name
+                        Farmer Name
                         {sortOrder === null && <ArrowUpDown className="ml-2 h-4 w-4" />}
                         {sortOrder === "asc" && <ArrowUp className="ml-2 h-4 w-4" />}
                         {sortOrder === "desc" && <ArrowDown className="ml-2 h-4 w-4" />}
@@ -331,34 +555,39 @@ export default function FarmersPage() {
                     <TableHead>Phone</TableHead>
                     <TableHead>Address</TableHead>
                     <TableHead>Join Date</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {filteredFarmers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        Loading farmers...
-                      </TableCell>
-                    </TableRow>
-                  ) : getFilteredAndSortedFarmers().length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? "No farmers found matching your search." : "No farmers added yet. Click \"Add Farmer\" to get started."}
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        {searchQuery || (dateRangeStart && dateRangeEnd) ? "No farmers found matching your filters." : "No farmers added yet. Click \"Add New Farmer\" to get started."}
                       </TableCell>
                     </TableRow>
         ) : (
-          getFilteredAndSortedFarmers().map((farmer) => (
+          filteredFarmers.map((farmer) => (
                       <TableRow 
                         key={farmer.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleView(farmer)}
                       >
+                        <TableCell className="text-sm text-muted-foreground">{farmer.farmhouseName || "N/A"}</TableCell>
                         <TableCell className="font-medium">{farmer.name}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.phone}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{farmer.address || "N/A"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {farmer.createdAt ? new Date(farmer.createdAt).toLocaleDateString() : "N/A"}
+                        <TableCell className="text-sm text-muted-foreground">{farmer.joinDate}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              (farmer.status || "active") === "active"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {(farmer.status || "active") === "active" ? "Active" : "Inactive"}
+                          </span>
                         </TableCell>
                         <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="icon" onClick={() => handleEdit(farmer)}>
@@ -388,8 +617,12 @@ export default function FarmersPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Name</Label>
+                    <Label className="text-muted-foreground">Farmer Name</Label>
                     <div className="text-sm font-medium">{viewingFarmer.name}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Farm House Name</Label>
+                    <div className="text-sm font-medium">{viewingFarmer.farmhouseName || "N/A"}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Phone</Label>
@@ -401,14 +634,24 @@ export default function FarmersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Join Date</Label>
-                    <div className="text-sm font-medium">
-                      {viewingFarmer.createdAt ? new Date(viewingFarmer.createdAt).toLocaleDateString() : "N/A"}
+                    <div className="text-sm font-medium">{viewingFarmer.joinDate}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        viewingFarmer.status === "active"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}>
+                        {viewingFarmer.status === "active" ? "Active" : "Inactive"}
+                      </span>
                     </div>
                   </div>
-                  {viewingFarmer.notes && (
+                  {viewingFarmer.note && (
                     <div className="space-y-2 md:col-span-2">
-                      <Label className="text-muted-foreground">Notes</Label>
-                      <div className="text-sm font-medium whitespace-pre-wrap">{viewingFarmer.notes}</div>
+                      <Label className="text-muted-foreground">Note</Label>
+                      <div className="text-sm font-medium whitespace-pre-wrap">{viewingFarmer.note}</div>
                     </div>
                   )}
                 </div>
