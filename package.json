@@ -69,6 +69,5 @@
     "typescript": "^5"
   },
   "devDependencies": {
-    "tw-animate-css": "1.3.3"
   }
 }
