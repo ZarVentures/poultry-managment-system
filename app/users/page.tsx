@@ -17,6 +17,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit2, Trash2, Lock, LockOpen, Shield, ArrowUpDown, ArrowUp, ArrowDown, Search, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 
 interface User {
   id: string
@@ -27,6 +28,7 @@ interface User {
   status: "active" | "inactive"
   joinDate: string
   lastLogin: string
+  notes?: string
   locked?: boolean
 }
 
@@ -48,12 +50,16 @@ export default function UsersPage() {
     phone: string
     role: "admin" | "operator"
     status: "active" | "inactive"
+    joinDate: string
+    notes: string
   }>({
     name: "",
     email: "",
     phone: "",
     role: "operator",
     status: "active",
+    joinDate: new Date().toISOString().split("T")[0],
+    notes: "",
   })
 
   useEffect(() => {
@@ -74,10 +80,11 @@ export default function UsersPage() {
     const saved = localStorage.getItem("users")
     if (saved) {
       const parsed = JSON.parse(saved)
-      // Add phone and locked fields for backward compatibility
+      // Add phone, notes, and locked fields for backward compatibility
       const usersWithFields = parsed.map((user: User) => ({
         ...user,
         phone: user.phone || "",
+        notes: user.notes || "",
         locked: user.locked || false,
       }))
       setUsers(usersWithFields)
@@ -140,6 +147,8 @@ export default function UsersPage() {
                 phone: formData.phone,
                 role: formData.role,
                 status: formData.status,
+                joinDate: formData.joinDate,
+                notes: formData.notes || "",
               }
             : user,
         )
@@ -152,8 +161,9 @@ export default function UsersPage() {
             phone: formData.phone,
             role: formData.role,
             status: formData.status,
-            joinDate: new Date().toISOString().split("T")[0],
+            joinDate: formData.joinDate || new Date().toISOString().split("T")[0],
             lastLogin: "Never",
+            notes: formData.notes || "",
             locked: false,
           },
         ]
@@ -164,7 +174,15 @@ export default function UsersPage() {
   }
 
   const resetForm = () => {
-    setFormData({ name: "", email: "", phone: "", role: "operator", status: "active" })
+    setFormData({ 
+      name: "", 
+      email: "", 
+      phone: "", 
+      role: "operator", 
+      status: "active",
+      joinDate: new Date().toISOString().split("T")[0],
+      notes: ""
+    })
     setEditingId(null)
   }
 
@@ -176,6 +194,8 @@ export default function UsersPage() {
       phone: user.phone || "",
       role: user.role as "admin" | "operator" | "staff",
       status: user.status as "active" | "inactive",
+      joinDate: user.joinDate || new Date().toISOString().split("T")[0],
+      notes: user.notes || "",
     })
     setShowDialog(true)
   }
@@ -355,7 +375,7 @@ export default function UsersPage() {
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2" size={20} />
-                Add User
+                Add New User
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -382,12 +402,20 @@ export default function UsersPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone Number *</Label>
+                  <Label>Phone *</Label>
                   <Input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="Phone number"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Join Date</Label>
+                  <Input
+                    type="date"
+                    value={formData.joinDate}
+                    onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -419,6 +447,15 @@ export default function UsersPage() {
                       <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Enter any additional notes..."
+                    rows={3}
+                  />
                 </div>
                 <Button onClick={handleSave} className="w-full">
                   {editingId ? "Update" : "Add"} User
@@ -491,7 +528,7 @@ export default function UsersPage() {
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle>User Accounts</CardTitle>
+                <CardTitle>User Accounts List</CardTitle>
                 <CardDescription>Manage all user accounts and permissions</CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -559,7 +596,7 @@ export default function UsersPage() {
                   {getFilteredAndSortedUsers().length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? "No users found matching your search." : "No users added yet. Click \"Add User\" to get started."}
+                        {searchQuery ? "No users found matching your search." : "No users added yet. Click \"Add New User\" to get started."}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -710,6 +747,12 @@ export default function UsersPage() {
                     <div className="text-sm font-medium">{viewingUser.lastLogin}</div>
                   </div>
                 </div>
+                {viewingUser.notes && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Notes</Label>
+                    <div className="text-sm font-medium whitespace-pre-wrap">{viewingUser.notes}</div>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

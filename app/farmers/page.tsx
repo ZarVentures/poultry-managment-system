@@ -247,7 +247,7 @@ export default function FarmersPage() {
           <table>
             <thead>
               <tr>
-                <th>Farmer House Name</th>
+                <th>Farm House Name</th>
                 <th>Farmer Name</th>
                 <th>Phone</th>
                 <th>Address</th>
@@ -316,7 +316,7 @@ export default function FarmersPage() {
           <table>
             <thead>
               <tr>
-                <th>Farmer House Name</th>
+                <th>Farm House Name</th>
                 <th>Farmer Name</th>
                 <th>Phone</th>
                 <th>Address</th>
@@ -385,11 +385,11 @@ export default function FarmersPage() {
                   />
                 </div>
                   <div className="space-y-2">
-                    <Label>Farmhouse Name</Label>
+                    <Label>Farm House Name</Label>
                   <Input
                     value={formData.farmhouseName}
                     onChange={(e) => setFormData({ ...formData, farmhouseName: e.target.value })}
-                      placeholder="Farmhouse name"
+                      placeholder="Farm House name"
                   />
                 </div>
                   <div className="space-y-2">
@@ -538,7 +538,7 @@ export default function FarmersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Farmer House Name</TableHead>
+                    <TableHead>Farm House Name</TableHead>
                     <TableHead>
                       <Button
                         variant="ghost"
@@ -621,7 +621,7 @@ export default function FarmersPage() {
                     <div className="text-sm font-medium">{viewingFarmer.name}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Farmhouse Name</Label>
+                    <Label className="text-muted-foreground">Farm House Name</Label>
                     <div className="text-sm font-medium">{viewingFarmer.farmhouseName || "N/A"}</div>
                   </div>
                   <div className="space-y-2">

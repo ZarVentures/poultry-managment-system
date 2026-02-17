@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import {
   BarChart3,
   Users,
@@ -101,19 +102,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <SidebarLink href="/financial-analytics" icon={Calculator} label="Financial Analytics" open={sidebarOpen} />
 
           <div className="space-y-1">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
-              onClick={() => setMasterEntriesOpen(!masterEntriesOpen)}
-            >
-              <Users2 size={20} />
-              {sidebarOpen && (
-                <>
-                  <span className="ml-2 flex-1 text-left">Master Entries</span>
-                  <ChevronDown size={16} className={`transition-transform ${masterEntriesOpen ? "rotate-180" : ""}`} />
-                </>
-              )}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+                  onClick={() => setMasterEntriesOpen(!masterEntriesOpen)}
+                >
+                  <Users2 size={20} />
+                  {sidebarOpen && (
+                    <>
+                      <span className="ml-2 flex-1 text-left">Master Entries</span>
+                      <ChevronDown size={16} className={`transition-transform ${masterEntriesOpen ? "rotate-180" : ""}`} />
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-foreground text-background">
+                Master Entries
+              </TooltipContent>
+            </Tooltip>
 
             {masterEntriesOpen && sidebarOpen && (
               <div className="ml-4 space-y-1 border-l border-sidebar-border">
@@ -129,14 +137,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="border-t border-sidebar-border p-3">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
-            onClick={handleLogout}
-          >
-            <LogOut size={20} />
-            {sidebarOpen && <span className="ml-2">Logout</span>}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+                onClick={handleLogout}
+              >
+                <LogOut size={20} />
+                {sidebarOpen && <span className="ml-2">Logout</span>}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-foreground text-background">
+              Logout
+            </TooltipContent>
+          </Tooltip>
         </div>
       </aside>
 
@@ -173,15 +188,22 @@ function SidebarLink({
   isSubItem?: boolean
 }) {
   return (
-    <Link href={href}>
-      <Button
-        variant="ghost"
-        className={`w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent ${isSubItem ? "pl-8 text-sm" : ""}`}
-      >
-        <Icon size={20} />
-        {open && <span className="ml-2">{label}</span>}
-      </Button>
-    </Link>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link href={href} className="block">
+          <Button
+            variant="ghost"
+            className={`w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent ${isSubItem ? "pl-8 text-sm" : ""}`}
+          >
+            <Icon size={20} />
+            {open && <span className="ml-2">{label}</span>}
+          </Button>
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="bg-foreground text-background">
+        {label}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
