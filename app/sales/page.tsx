@@ -716,11 +716,20 @@ export default function SalesPage() {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Sale Invoice No. <span className="text-red-500">*</span></Label>
-                      <Input
-                        value={formData.saleInvoiceNo}
-                        onChange={(e) => setFormData({ ...formData, saleInvoiceNo: e.target.value })}
-                        placeholder="Enter invoice number"
-                      />
+                      <div className="flex rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                        <span className="inline-flex items-center rounded-l-md border-0 bg-muted px-3 text-muted-foreground sm:text-sm">
+                          SI-
+                        </span>
+                        <Input
+                          className="rounded-l-none border-0 border-l bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                          value={formData.saleInvoiceNo.startsWith("SI-") ? formData.saleInvoiceNo.slice(3) : formData.saleInvoiceNo}
+                          onChange={(e) => {
+                            const v = e.target.value.trim()
+                            setFormData({ ...formData, saleInvoiceNo: v === "" ? "" : "SI-" + v })
+                          }}
+                          placeholder="e.g. 001, 002"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Sale Date <span className="text-red-500">*</span></Label>

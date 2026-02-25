@@ -93,6 +93,9 @@ export default function PurchasesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined)
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
+  const [cageDetails, setCageDetails] = useState<Array<{ cageId: string; numberOfBirds: string; cageWeight: string }>>([
+    { cageId: "", numberOfBirds: "", cageWeight: "" },
+  ])
   const [formData, setFormData] = useState<{
     purchaseInvoiceNo: string
     purchaseDate: string
@@ -187,18 +190,15 @@ export default function PurchasesPage() {
     }
   }, [formData.farmerName, farmers])
 
-  // Auto-calculate number of birds from cages
+  // Auto-calculate number of birds from cage details rows
   const calculatedNumberOfBirds = useMemo(() => {
-    const cages = Number.parseFloat(formData.numberOfCages) || 0
-    return cages * 16
-  }, [formData.numberOfCages])
+    return cageDetails.reduce((sum, row) => sum + (Number.parseFloat(row.numberOfBirds) || 0), 0)
+  }, [cageDetails])
 
-  // Auto-calculate total weight
+  // Auto-calculate total weight from cage details rows
   const totalWeight = useMemo(() => {
-    const birds = calculatedNumberOfBirds || 0
-    const avgWeight = Number.parseFloat(formData.averageWeight) || 0
-    return birds * avgWeight
-  }, [calculatedNumberOfBirds, formData.averageWeight])
+    return cageDetails.reduce((sum, row) => sum + (Number.parseFloat(row.cageWeight) || 0), 0)
+  }, [cageDetails])
 
   // Auto-calculate total amount
   const totalAmount = useMemo(() => {
@@ -270,7 +270,7 @@ export default function PurchasesPage() {
 
   const handleSave = async () => {
     // Only validate mandatory fields (marked with *)
-    if (!formData.purchaseInvoiceNo || !formData.purchaseDate || !formData.farmerName || !formData.numberOfCages || !formData.ratePerKg) {
+    if (!formData.purchaseInvoiceNo || !formData.purchaseDate || !formData.farmerName || cageDetails.length === 0) {
       alert("Please fill all required fields (marked with *)")
       return
     }
@@ -291,12 +291,13 @@ export default function PurchasesPage() {
           purchaseType: formData.purchaseType || "Paid",
           notes: formData.notes || "",
           birdType: formData.birdType || "",
-          numberOfCages: Number.parseFloat(formData.numberOfCages) || 0,
+          numberOfCages: cageDetails.length,
           numberOfBirds: calculatedNumberOfBirds || 0,
           ratePerKg: Number.parseFloat(formData.ratePerKg) || 0,
           averageWeight: formData.averageWeight ? Number.parseFloat(formData.averageWeight) : 0,
-          totalWeight: formData.totalWeight ? Number.parseFloat(formData.totalWeight) : 0,
-          totalAmount: formData.totalAmount ? Number.parseFloat(formData.totalAmount) : 0,
+          totalWeight,
+          totalAmount,
+          cageDetails: cageDetails.map((row) => ({ cageId: row.cageId, numberOfBirds: row.numberOfBirds, cageWeight: row.cageWeight })),
           transportCharges: formData.transportCharges ? Number.parseFloat(formData.transportCharges) : 0,
           loadingCharges: formData.loadingCharges ? Number.parseFloat(formData.loadingCharges) : 0,
           commission: formData.commission ? Number.parseFloat(formData.commission) : 0,
@@ -358,6 +359,7 @@ export default function PurchasesPage() {
     balanceAmount: "",
       dueDate: "",
     })
+    setCageDetails([{ cageId: "", numberOfBirds: "", cageWeight: "" }])
     setEditingId(null)
   }
 
@@ -391,6 +393,11 @@ export default function PurchasesPage() {
       balanceAmount: order.balanceAmount?.toString() || "",
       dueDate: order.dueDate || "",
     })
+    setCageDetails(
+      order.numberOfBirds || order.totalWeight
+        ? [{ cageId: "", numberOfBirds: (order.numberOfBirds || order.birdQuantity || 0).toString(), cageWeight: (order.totalWeight || 0).toString() }]
+        : [{ cageId: "", numberOfBirds: "", cageWeight: "" }]
+    )
     setShowDialog(true)
   }
 
@@ -624,7 +631,7 @@ export default function PurchasesPage() {
                 Add New Purchase
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[99vw] w-[99vw] max-h-[98vh] h-[98vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Purchase Order" : "Create Purchase Order"}</DialogTitle>
                 <DialogDescription>Enter purchase order details</DialogDescription>
@@ -639,11 +646,20 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                         <Label>Purchase Invoice No. *</Label>
-                    <Input
-                          value={formData.purchaseInvoiceNo}
-                          onChange={(e) => setFormData({ ...formData, purchaseInvoiceNo: e.target.value })}
-                          placeholder="Enter invoice number"
-                    />
+                    <div className="flex rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                          <span className="inline-flex items-center rounded-l-md border-0 bg-muted px-3 text-muted-foreground sm:text-sm">
+                            PO-
+                          </span>
+                          <Input
+                            className="rounded-l-none border-0 border-l bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                            value={formData.purchaseInvoiceNo.startsWith("PO-") ? formData.purchaseInvoiceNo.slice(3) : formData.purchaseInvoiceNo}
+                            onChange={(e) => {
+                              const v = e.target.value.trim()
+                              setFormData({ ...formData, purchaseInvoiceNo: v === "" ? "" : "PO-" + v })
+                            }}
+                            placeholder="e.g. 001, 002"
+                          />
+                        </div>
                   </div>
                   <div className="space-y-2">
                         <Label>Purchase Date *</Label>
@@ -767,50 +783,64 @@ export default function PurchasesPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                    <div className="space-y-2">
-                        <Label>Number of Cages *</Label>
-                      <Input
-                          type="number"
-                          value={formData.numberOfCages}
-                          onChange={(e) => setFormData({ ...formData, numberOfCages: e.target.value })}
-                          placeholder="0"
-                      />
                     </div>
-                      <div className="space-y-2">
-                        <Label>Number of Birds *</Label>
-                        <Input
-                          type="number"
-                          value={calculatedNumberOfBirds}
-                          readOnly
-                          className="bg-muted"
-                          placeholder="Auto-calculated"
-                        />
+                    <div className="mt-4 space-y-3">
+                      <div className="grid grid-cols-3 gap-2 text-sm font-medium text-muted-foreground">
+                        <div>Cage ID Number</div>
+                        <div>Number of Birds</div>
+                        <div>Cage Weight</div>
                       </div>
-                    <div className="space-y-2">
-                        <Label>Rate per Kg *</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.ratePerKg}
-                          onChange={(e) => setFormData({ ...formData, ratePerKg: e.target.value })}
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Average Bird Weight (Kg)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                          value={formData.averageWeight}
-                          onChange={(e) => setFormData({ ...formData, averageWeight: e.target.value })}
-                        placeholder="0.00"
-                      />
-                      </div>
+                      {cageDetails.map((row, index) => (
+                        <div key={index} className="grid grid-cols-3 gap-2">
+                          <Input
+                            value={row.cageId}
+                            onChange={(e) => {
+                              const next = [...cageDetails]
+                              next[index] = { ...next[index], cageId: e.target.value }
+                              setCageDetails(next)
+                            }}
+                            placeholder="Cage ID"
+                          />
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={row.numberOfBirds}
+                            onChange={(e) => {
+                              const next = [...cageDetails]
+                              next[index] = { ...next[index], numberOfBirds: e.target.value }
+                              setCageDetails(next)
+                            }}
+                            placeholder="Birds"
+                          />
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={row.cageWeight}
+                            onChange={(e) => {
+                              const next = [...cageDetails]
+                              next[index] = { ...next[index], cageWeight: e.target.value }
+                              setCageDetails(next)
+                            }}
+                            placeholder="Weight (Kg)"
+                          />
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setCageDetails([...cageDetails, { cageId: "", numberOfBirds: "", cageWeight: "" }])}
+                        className="mt-2"
+                      >
+                        <Plus className="mr-2 size-4" />
+                        Add more
+                      </Button>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Total Weight</Label>
                         <Input
                           type="text"
-                          value={formData.totalWeight ? `${formData.totalWeight} Kg` : ""}
+                          value={totalWeight ? `${totalWeight} Kg` : ""}
                           readOnly
                           className="bg-muted font-semibold"
                           placeholder="Auto-calculated"
@@ -820,7 +850,7 @@ export default function PurchasesPage() {
                         <Label>Total Amount</Label>
                         <Input
                           type="text"
-                          value={formData.totalAmount ? `₹${Number.parseFloat(formData.totalAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
+                          value={totalAmount ? `₹${totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
                           readOnly
                           className="bg-muted font-semibold"
                           placeholder="Auto-calculated"

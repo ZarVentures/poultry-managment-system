@@ -35,6 +35,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [masterEntriesOpen, setMasterEntriesOpen] = useState(false)
+  const [godownOpen, setGodownOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -93,7 +94,37 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
           <SidebarLink href="/dashboard" icon={Home} label="Dashboard" open={sidebarOpen} />
-          <SidebarLink href="/inventory" icon={Package} label="Godown" open={sidebarOpen} />
+          <div className="space-y-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+                  onClick={() => setGodownOpen(!godownOpen)}
+                >
+                  <Package size={20} />
+                  {sidebarOpen && (
+                    <>
+                      <span className="ml-2 flex-1 text-left">Godown</span>
+                      <ChevronDown size={16} className={`transition-transform ${godownOpen ? "rotate-180" : ""}`} />
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-foreground text-background">
+                Godown
+              </TooltipContent>
+            </Tooltip>
+            {godownOpen && sidebarOpen && (
+              <div className="ml-4 space-y-1 border-l border-sidebar-border">
+                <SidebarLink href="/inventory" icon={Package} label="Godown Management" open={true} isSubItem={true} />
+                <SidebarLink href="/godown/inward-entry" icon={Package} label="Godown Inward Entry" open={true} isSubItem={true} />
+                <SidebarLink href="/godown/sale" icon={Package} label="Godown Sale" open={true} isSubItem={true} />
+                <SidebarLink href="/godown/mortality" icon={Package} label="Godown Mortality" open={true} isSubItem={true} />
+                <SidebarLink href="/godown/expense" icon={Package} label="Godown Expense" open={true} isSubItem={true} />
+              </div>
+            )}
+          </div>
           <SidebarLink href="/purchases" icon={ShoppingCart} label="Purchases" open={sidebarOpen} />
           <SidebarLink href="/sales" icon={TrendingUp} label="Sales" open={sidebarOpen} />
           <SidebarLink href="/mortality" icon={AlertCircle} label="Mortality" open={sidebarOpen} />

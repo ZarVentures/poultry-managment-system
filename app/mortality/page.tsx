@@ -39,6 +39,7 @@ interface PurchaseOrder {
   vehicleNo?: string
   numberOfBirds?: number
   birdQuantity?: number
+  cageDetails?: string | Array<{ cageId?: string; numberOfBirds?: string; cageWeight?: string }>
 }
 
 interface Mortality {
@@ -48,7 +49,8 @@ interface Mortality {
   purchaseDate: string
   farmerName: string
   farmLocation: string
-  vehicleNo: string
+  vehicleNo?: string
+  cageIdNumber?: string
   totalBirdsPurchased: number
   numberOfBirdsDied: number
   cause: string
@@ -76,7 +78,7 @@ export default function MortalityPage() {
     purchaseDate: string
     farmerName: string
     farmLocation: string
-    vehicleNo: string
+    cageIdNumber: string
     totalBirdsPurchased: string
     numberOfBirdsDied: string
     cause: string
@@ -86,7 +88,7 @@ export default function MortalityPage() {
     purchaseDate: new Date().toISOString().split("T")[0],
     farmerName: "",
     farmLocation: "",
-    vehicleNo: "",
+    cageIdNumber: "",
     totalBirdsPurchased: "",
     numberOfBirdsDied: "",
     cause: "",
@@ -128,15 +130,30 @@ export default function MortalityPage() {
     }
   }, [])
 
-  // Auto-fill fields when Purchase Invoice No is entered
+  // Selected purchase (for Cage ID dropdown and auto-fill)
+  const selectedPurchase = useMemo(
+    () =>
+      purchases.find(
+        (p) => (p.purchaseInvoiceNo || "").toLowerCase() === formData.purchaseInvoiceNo.toLowerCase()
+      ),
+    [purchases, formData.purchaseInvoiceNo]
+  )
+
+  // Cage IDs from selected purchase (parse cageDetails JSON if string)
+  const cageIdOptions = useMemo(() => {
+    if (!selectedPurchase?.cageDetails) return []
+    const details = selectedPurchase.cageDetails
+    const arr = typeof details === "string" ? (JSON.parse(details || "[]") as Array<{ cageId?: string }>) : details
+    return (arr || [])
+      .map((row) => row?.cageId?.trim())
+      .filter((id): id is string => !!id)
+  }, [selectedPurchase])
+
+  // Auto-fill fields when Purchase Invoice No is selected
   const handlePurchaseInvoiceChange = (invoiceNo: string) => {
-    setFormData({ ...formData, purchaseInvoiceNo: invoiceNo })
-    
-    // Find purchase by invoice number
     const purchase = purchases.find(
       (p) => (p.purchaseInvoiceNo || "").toLowerCase() === invoiceNo.toLowerCase()
     )
-    
     if (purchase) {
       setFormData({
         ...formData,
@@ -144,18 +161,17 @@ export default function MortalityPage() {
         purchaseDate: purchase.purchaseDate || purchase.date || new Date().toISOString().split("T")[0],
         farmerName: purchase.farmerName || purchase.supplier || "",
         farmLocation: purchase.farmLocation || "",
-        vehicleNo: purchase.vehicleNo || "",
+        cageIdNumber: "",
         totalBirdsPurchased: (purchase.numberOfBirds || purchase.birdQuantity || 0).toString(),
       })
     } else {
-      // Clear auto-fill fields if purchase not found
       setFormData({
         ...formData,
         purchaseInvoiceNo: invoiceNo,
         purchaseDate: new Date().toISOString().split("T")[0],
         farmerName: "",
         farmLocation: "",
-        vehicleNo: "",
+        cageIdNumber: "",
         totalBirdsPurchased: "",
       })
     }
@@ -196,7 +212,7 @@ export default function MortalityPage() {
               purchaseDate: formData.purchaseDate,
               farmerName: formData.farmerName,
               farmLocation: formData.farmLocation,
-              vehicleNo: formData.vehicleNo,
+              cageIdNumber: formData.cageIdNumber,
               totalBirdsPurchased: Number.parseInt(formData.totalBirdsPurchased) || 0,
               numberOfBirdsDied: Number.parseInt(formData.numberOfBirdsDied),
               cause: formData.cause,
@@ -218,7 +234,7 @@ export default function MortalityPage() {
           purchaseDate: formData.purchaseDate,
           farmerName: formData.farmerName,
           farmLocation: formData.farmLocation,
-          vehicleNo: formData.vehicleNo,
+          cageIdNumber: formData.cageIdNumber,
           totalBirdsPurchased: Number.parseInt(formData.totalBirdsPurchased) || 0,
           numberOfBirdsDied: Number.parseInt(formData.numberOfBirdsDied),
           cause: formData.cause,
@@ -243,7 +259,7 @@ export default function MortalityPage() {
       purchaseDate: new Date().toISOString().split("T")[0],
       farmerName: "",
       farmLocation: "",
-      vehicleNo: "",
+      cageIdNumber: "",
       totalBirdsPurchased: "",
       numberOfBirdsDied: "",
       cause: "",
@@ -259,7 +275,7 @@ export default function MortalityPage() {
       purchaseDate: mortality.purchaseDate || mortality.date || new Date().toISOString().split("T")[0],
       farmerName: mortality.farmerName || mortality.batch || "",
       farmLocation: mortality.farmLocation || "",
-      vehicleNo: mortality.vehicleNo || "",
+      cageIdNumber: mortality.cageIdNumber || mortality.vehicleNo || "",
       totalBirdsPurchased: mortality.totalBirdsPurchased?.toString() || "",
       numberOfBirdsDied: mortality.numberOfBirdsDied?.toString() || mortality.numberOfBirds?.toString() || "",
       cause: mortality.cause || "",
@@ -364,7 +380,7 @@ export default function MortalityPage() {
                 <th>Purchase Date</th>
                 <th>Farmer Name</th>
                 <th>Farm Location</th>
-                <th>Vehicle No</th>
+                <th>Cage ID Number</th>
                 <th>Total Birds Purchased</th>
                 <th>Number of Birds Died</th>
                 <th>Cause of Death</th>
@@ -377,7 +393,7 @@ export default function MortalityPage() {
                   <td>${mortality.purchaseDate || mortality.date || "N/A"}</td>
                   <td>${mortality.farmerName || mortality.batch || "N/A"}</td>
                   <td>${mortality.farmLocation || "N/A"}</td>
-                  <td>${mortality.vehicleNo || "N/A"}</td>
+                  <td>${mortality.cageIdNumber || mortality.vehicleNo || "N/A"}</td>
                   <td>${(mortality.totalBirdsPurchased || 0).toLocaleString()}</td>
                   <td>${(mortality.numberOfBirdsDied || mortality.numberOfBirds || 0).toLocaleString()}</td>
                   <td>${mortality.cause || "N/A"}</td>
@@ -438,7 +454,7 @@ export default function MortalityPage() {
                 <th>Purchase Date</th>
                 <th>Farmer Name</th>
                 <th>Farm Location</th>
-                <th>Vehicle No</th>
+                <th>Cage ID Number</th>
                 <th>Total Birds Purchased</th>
                 <th>Number of Birds Died</th>
                 <th>Cause of Death</th>
@@ -451,7 +467,7 @@ export default function MortalityPage() {
                   <td>${mortality.purchaseDate || mortality.date || "N/A"}</td>
                   <td>${mortality.farmerName || mortality.batch || "N/A"}</td>
                   <td>${mortality.farmLocation || "N/A"}</td>
-                  <td>${mortality.vehicleNo || "N/A"}</td>
+                  <td>${mortality.cageIdNumber || mortality.vehicleNo || "N/A"}</td>
                   <td>${(mortality.totalBirdsPurchased || 0).toLocaleString()}</td>
                   <td>${(mortality.numberOfBirdsDied || mortality.numberOfBirds || 0).toLocaleString()}</td>
                   <td>${mortality.cause || "N/A"}</td>
@@ -519,17 +535,26 @@ export default function MortalityPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Purchase Invoice No. <span className="text-red-500">*</span></Label>
-                    <Input
-                      value={formData.purchaseInvoiceNo}
-                      onChange={(e) => handlePurchaseInvoiceChange(e.target.value)}
-                      placeholder="Enter purchase invoice number"
-                      list="purchaseInvoices"
-                    />
-                    <datalist id="purchaseInvoices">
-                      {purchases.map((purchase) => (
-                        <option key={purchase.id} value={purchase.purchaseInvoiceNo || ""} />
-                      ))}
-                    </datalist>
+                    <Select
+                      value={formData.purchaseInvoiceNo || "__none__"}
+                      onValueChange={(value) => handlePurchaseInvoiceChange(value === "__none__" ? "" : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select purchase invoice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {purchases
+                          .filter((p) => (p.purchaseInvoiceNo || "").trim() !== "")
+                          .map((purchase) => (
+                            <SelectItem key={purchase.id} value={purchase.purchaseInvoiceNo || ""}>
+                              {purchase.purchaseInvoiceNo}
+                            </SelectItem>
+                          ))}
+                        {purchases.filter((p) => (p.purchaseInvoiceNo || "").trim() !== "").length === 0 && (
+                          <SelectItem value="__none__" disabled>No purchase orders found</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Purchase Date <span className="text-red-500">*</span></Label>
@@ -566,20 +591,27 @@ export default function MortalityPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Vehicle No</Label>
+                    <Label>Cage ID Number</Label>
                     <Select
-                      value={formData.vehicleNo}
-                      onValueChange={(value) => setFormData({ ...formData, vehicleNo: value })}
+                      value={formData.cageIdNumber || (formData.purchaseInvoiceNo && cageIdOptions.length > 0 ? "" : "__none__")}
+                      onValueChange={(value) => setFormData({ ...formData, cageIdNumber: value === "__none__" ? "" : value })}
+                      disabled={!formData.purchaseInvoiceNo || cageIdOptions.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select vehicle" />
+                        <SelectValue placeholder={!formData.purchaseInvoiceNo ? "Select invoice first" : cageIdOptions.length === 0 ? "No cage IDs for this invoice" : "Select cage ID"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {vehicles.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
-                            {vehicle.vehicleNumber}
+                        {formData.purchaseInvoiceNo && cageIdOptions.length > 0 && (
+                          <SelectItem value="">—</SelectItem>
+                        )}
+                        {cageIdOptions.map((cageId) => (
+                          <SelectItem key={cageId} value={cageId}>
+                            {cageId}
                           </SelectItem>
                         ))}
+                        {formData.purchaseInvoiceNo && cageIdOptions.length === 0 && (
+                          <SelectItem value="__none__" disabled>No cage IDs for this invoice</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -723,7 +755,7 @@ export default function MortalityPage() {
                     <TableHead>Purchase Date</TableHead>
                     <TableHead>Farmer Name</TableHead>
                     <TableHead>Farm Location</TableHead>
-                    <TableHead>Vehicle No</TableHead>
+                    <TableHead>Cage ID Number</TableHead>
                     <TableHead>Total Birds Purchased</TableHead>
                     <TableHead>Number of Birds Died</TableHead>
                     <TableHead>Cause of Death</TableHead>
@@ -748,7 +780,7 @@ export default function MortalityPage() {
                         <TableCell>{mortality.purchaseDate || mortality.date || "N/A"}</TableCell>
                         <TableCell>{mortality.farmerName || mortality.batch || "N/A"}</TableCell>
                         <TableCell>{mortality.farmLocation || "N/A"}</TableCell>
-                        <TableCell>{mortality.vehicleNo || "N/A"}</TableCell>
+                        <TableCell>{mortality.cageIdNumber || mortality.vehicleNo || "N/A"}</TableCell>
                         <TableCell>{mortality.totalBirdsPurchased || 0}</TableCell>
                         <TableCell>{mortality.numberOfBirdsDied || mortality.numberOfBirds || 0}</TableCell>
                         <TableCell>{mortality.cause || "N/A"}</TableCell>
@@ -800,8 +832,8 @@ export default function MortalityPage() {
                     <div className="text-sm font-medium">{viewingMortality.farmLocation || "N/A"}</div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Vehicle No</Label>
-                    <div className="text-sm font-medium">{viewingMortality.vehicleNo || "N/A"}</div>
+                    <Label className="text-muted-foreground">Cage ID Number</Label>
+                    <div className="text-sm font-medium">{viewingMortality.cageIdNumber || viewingMortality.vehicleNo || "N/A"}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Total Birds Purchased</Label>

@@ -86,6 +86,7 @@ export async function POST(request) {
       totalPaymentMade,
       balanceAmount,
       dueDate,
+      cageDetails,
       // Legacy fields for backward compatibility
       supplier,
       date,
@@ -238,7 +239,7 @@ export async function POST(request) {
               'ratePerKg REAL', 'totalAmount REAL', 'transportCharges REAL', 'loadingCharges REAL',
               'commission REAL', 'otherCharges REAL', 'deductions REAL', 'totalInvoice REAL',
               'advancePaid REAL', 'outstandingPayment REAL', 'paymentMode TEXT', 'totalPaymentMade REAL',
-              'balanceAmount REAL', 'dueDate TEXT'
+              'balanceAmount REAL', 'dueDate TEXT', 'cageDetails TEXT'
             ];
             
             let completed = 0;
@@ -268,6 +269,7 @@ export async function POST(request) {
         // Try to insert with new schema first, fallback to legacy if needed
         ensureColumns().then(() => {
           // Try new schema insert
+          const cageDetailsJson = Array.isArray(cageDetails) ? JSON.stringify(cageDetails) : (cageDetails || null);
           db.run(
             `INSERT INTO purchases (
               purchaseInvoiceNo, purchaseDate, farmerName, farmerMobile, farmLocation, vehicleNo,
@@ -275,8 +277,9 @@ export async function POST(request) {
               totalWeight, ratePerKg, totalAmount, transportCharges, loadingCharges,
               commission, otherCharges, deductions, totalInvoice, advancePaid,
               outstandingPayment, paymentMode, totalPaymentMade, balanceAmount, dueDate,
+              cageDetails,
               orderNumber, supplier, date, description, birdQuantity, cageQuantity, unitCost, totalValue, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               purchaseInvoiceNo || orderNumber,
               purchaseDate || finalDate,
@@ -305,6 +308,7 @@ export async function POST(request) {
               parseFloat(totalPaymentMade) || null,
               parseFloat(balanceAmount) || null,
               dueDate || null,
+              cageDetailsJson,
               // Legacy fields
               orderNumber,
               finalSupplier.trim(),
