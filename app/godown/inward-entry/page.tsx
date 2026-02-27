@@ -18,22 +18,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Edit2, Trash2, Printer, X, Eye } from "lucide-react"
 import { DateRangeFilter } from "@/components/date-range-filter"
 import { useDateFilter } from "@/contexts/date-filter-context"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+interface Vehicle {
+  id: string
+  vehicleNumber: string
+  vehicleType: string
+  driverName: string
+  phone: string
+  status: "active" | "inactive"
+}
 
 interface GodownInwardEntry {
   id: string
-  entryDate: string
-  referenceNo: string
-  source: string
-  cageId: string
+  date: string
+  purchaseInvoiceNo: string
+  sourceVehicleNo: string
+  driverName: string
+  birdType: string
+  numberOfCages: number
   numberOfBirds: number
-  weightKg: number
-  ratePerKg: number
-  amount: number
-  notes: string
+  totalWeight: number
+  mortality: number
+  transferNote: string
 }
 
 export default function GodownInwardEntryPage() {
   const [entries, setEntries] = useState<GodownInwardEntry[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [mounted, setMounted] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
@@ -43,53 +55,64 @@ export default function GodownInwardEntryPage() {
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState("")
   const [formData, setFormData] = useState({
-    entryDate: new Date().toISOString().split("T")[0],
-    referenceNo: "",
-    source: "",
-    cageId: "",
+    date: new Date().toISOString().split("T")[0],
+    purchaseInvoiceNo: "",
+    sourceVehicleNo: "",
+    driverName: "",
+    birdType: "",
+    numberOfCages: "",
     numberOfBirds: "",
-    weightKg: "",
-    ratePerKg: "",
-    notes: "",
+    totalWeight: "",
+    mortality: "",
+    transferNote: "",
   })
   const { startDate, endDate } = useDateFilter()
 
-  const amount = useMemo(() => {
-    const weight = Number.parseFloat(formData.weightKg) || 0
-    const rate = Number.parseFloat(formData.ratePerKg) || 0
-    return weight * rate
-  }, [formData.weightKg, formData.ratePerKg])
+  const totalBirds = useMemo(() => {
+    return Number.parseInt(formData.numberOfBirds) || 0
+  }, [formData.numberOfBirds])
 
   useEffect(() => {
     setMounted(true)
     const saved = localStorage.getItem("godownInwardEntry")
-    if (saved) setEntries(JSON.parse(saved))
-    else setEntries([])
+    if (saved) {
+      setEntries(JSON.parse(saved))
+    } else {
+      setEntries([])
+    }
+
+    const savedVehicles = localStorage.getItem("vehicles")
+    if (savedVehicles) {
+      try {
+        const parsed: Vehicle[] = JSON.parse(savedVehicles)
+        setVehicles(parsed.filter((v) => v.status === "active"))
+      } catch {
+        setVehicles([])
+      }
+    }
   }, [])
 
   const handleSave = () => {
-    if (!formData.entryDate || !formData.referenceNo || !formData.cageId) {
-      alert("Please fill required fields (Date, Reference No, Cage ID)")
+    if (!formData.date || !formData.purchaseInvoiceNo || !formData.sourceVehicleNo) {
+      alert("Please fill required fields (Date, Purchase Invoice No, Source Vehicle No)")
       return
     }
-    const numBirds = Number.parseInt(formData.numberOfBirds) || 0
-    const weight = Number.parseFloat(formData.weightKg) || 0
-    const rate = Number.parseFloat(formData.ratePerKg) || 0
+
     const entry: GodownInwardEntry = {
       id: editingId || Date.now().toString(),
-      entryDate: formData.entryDate,
-      referenceNo: formData.referenceNo,
-      source: formData.source,
-      cageId: formData.cageId,
-      numberOfBirds: numBirds,
-      weightKg: weight,
-      ratePerKg: rate,
-      amount: weight * rate,
-      notes: formData.notes,
+      date: formData.date,
+      purchaseInvoiceNo: formData.purchaseInvoiceNo,
+      sourceVehicleNo: formData.sourceVehicleNo,
+      driverName: formData.driverName,
+      birdType: formData.birdType,
+      numberOfCages: Number.parseInt(formData.numberOfCages) || 0,
+      numberOfBirds: Number.parseInt(formData.numberOfBirds) || 0,
+      totalWeight: Number.parseFloat(formData.totalWeight) || 0,
+      mortality: Number.parseInt(formData.mortality) || 0,
+      transferNote: formData.transferNote,
     }
-    const updated = editingId
-      ? entries.map((e) => (e.id === editingId ? entry : e))
-      : [...entries, entry]
+
+    const updated = editingId ? entries.map((e) => (e.id === editingId ? entry : e)) : [...entries, entry]
     setEntries(updated)
     localStorage.setItem("godownInwardEntry", JSON.stringify(updated))
     resetForm()
@@ -98,14 +121,16 @@ export default function GodownInwardEntryPage() {
 
   const resetForm = () => {
     setFormData({
-      entryDate: new Date().toISOString().split("T")[0],
-      referenceNo: "",
-      source: "",
-      cageId: "",
+      date: new Date().toISOString().split("T")[0],
+      purchaseInvoiceNo: "",
+      sourceVehicleNo: "",
+      driverName: "",
+      birdType: "",
+      numberOfCages: "",
       numberOfBirds: "",
-      weightKg: "",
-      ratePerKg: "",
-      notes: "",
+      totalWeight: "",
+      mortality: "",
+      transferNote: "",
     })
     setEditingId(null)
   }
@@ -113,14 +138,16 @@ export default function GodownInwardEntryPage() {
   const handleEdit = (entry: GodownInwardEntry) => {
     setEditingId(entry.id)
     setFormData({
-      entryDate: entry.entryDate,
-      referenceNo: entry.referenceNo,
-      source: entry.source,
-      cageId: entry.cageId,
+      date: entry.date,
+      purchaseInvoiceNo: entry.purchaseInvoiceNo,
+      sourceVehicleNo: entry.sourceVehicleNo,
+      driverName: entry.driverName,
+      birdType: entry.birdType,
+      numberOfCages: entry.numberOfCages.toString(),
       numberOfBirds: entry.numberOfBirds.toString(),
-      weightKg: entry.weightKg.toString(),
-      ratePerKg: entry.ratePerKg.toString(),
-      notes: entry.notes,
+      totalWeight: entry.totalWeight.toString(),
+      mortality: entry.mortality ? entry.mortality.toString() : "",
+      transferNote: entry.transferNote,
     })
     setShowDialog(true)
   }
@@ -146,7 +173,7 @@ export default function GodownInwardEntryPage() {
       start.setHours(0, 0, 0, 0)
       end.setHours(23, 59, 59, 999)
       list = list.filter((e) => {
-        const d = new Date(e.entryDate)
+        const d = new Date(e.date)
         return d >= start && d <= end
       })
     }
@@ -156,7 +183,7 @@ export default function GodownInwardEntryPage() {
       start.setHours(0, 0, 0, 0)
       end.setHours(23, 59, 59, 999)
       list = list.filter((e) => {
-        const d = new Date(e.entryDate)
+        const d = new Date(e.date)
         return d >= start && d <= end
       })
     }
@@ -164,12 +191,13 @@ export default function GodownInwardEntryPage() {
       const q = searchQuery.toLowerCase()
       list = list.filter(
         (e) =>
-          e.referenceNo.toLowerCase().includes(q) ||
-          e.source.toLowerCase().includes(q) ||
-          e.cageId.toLowerCase().includes(q)
+          e.purchaseInvoiceNo.toLowerCase().includes(q) ||
+          e.sourceVehicleNo.toLowerCase().includes(q) ||
+          e.driverName.toLowerCase().includes(q) ||
+          e.birdType.toLowerCase().includes(q),
       )
     }
-    return list.sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }, [entries, dateRangeStart, dateRangeEnd, startDate, endDate, searchQuery])
 
   const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
@@ -201,39 +229,104 @@ export default function GodownInwardEntryPage() {
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Entry Date *</Label>
+                  <Label>Date *</Label>
                   <Input
                     type="date"
-                    value={formData.entryDate}
-                    onChange={(e) => setFormData({ ...formData, entryDate: e.target.value })}
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Reference No *</Label>
+                  <Label>Purchase Invoice No</Label>
                   <Input
-                    value={formData.referenceNo}
-                    onChange={(e) => setFormData({ ...formData, referenceNo: e.target.value })}
-                    placeholder="Chalan / GR No"
+                    value={formData.purchaseInvoiceNo}
+                    onChange={(e) => setFormData({ ...formData, purchaseInvoiceNo: e.target.value })}
+                    placeholder="Enter purchase invoice number"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Source</Label>
+                  <Label>Source Vehicle No</Label>
+                  <Select
+                    value={formData.sourceVehicleNo}
+                    onValueChange={(value) => {
+                      const vehicle = vehicles.find((v) => v.vehicleNumber === value)
+                      setFormData({
+                        ...formData,
+                        sourceVehicleNo: value,
+                        driverName: vehicle?.driverName || formData.driverName,
+                      })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No active vehicles found
+                        </SelectItem>
+                      ) : (
+                        vehicles.map((vehicle) => (
+                          <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
+                            {vehicle.vehicleNumber}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Driver Name</Label>
+                  <Select
+                    value={formData.driverName}
+                    onValueChange={(value) => setFormData({ ...formData, driverName: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select driver" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No drivers found
+                        </SelectItem>
+                      ) : (
+                        vehicles.map((vehicle) => (
+                          <SelectItem key={vehicle.id} value={vehicle.driverName}>
+                            {vehicle.driverName}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Bird Type</Label>
+                  <Select
+                    value={formData.birdType}
+                    onValueChange={(value) => setFormData({ ...formData, birdType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select bird type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Broiler">Broiler</SelectItem>
+                      <SelectItem value="Layer">Layer</SelectItem>
+                      <SelectItem value="Desi">Desi</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>No of Cages</Label>
                   <Input
-                    value={formData.source}
-                    onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                    placeholder="From where"
+                    type="number"
+                    value={formData.numberOfCages}
+                    onChange={(e) => setFormData({ ...formData, numberOfCages: e.target.value })}
+                    placeholder="0"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cage ID *</Label>
-                  <Input
-                    value={formData.cageId}
-                    onChange={(e) => setFormData({ ...formData, cageId: e.target.value })}
-                    placeholder="Cage identifier"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Number of Birds</Label>
+                  <Label>No of Bird (Qty)</Label>
                   <Input
                     type="number"
                     value={formData.numberOfBirds}
@@ -242,41 +335,43 @@ export default function GodownInwardEntryPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Weight (Kg)</Label>
+                  <Label>Total Weight</Label>
                   <Input
                     type="number"
                     step="0.01"
-                    value={formData.weightKg}
-                    onChange={(e) => setFormData({ ...formData, weightKg: e.target.value })}
+                    value={formData.totalWeight}
+                    onChange={(e) => setFormData({ ...formData, totalWeight: e.target.value })}
                     placeholder="0"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Rate per Kg</Label>
+                  <Label>Mortality (if any)</Label>
                   <Input
                     type="number"
-                    step="0.01"
-                    value={formData.ratePerKg}
-                    onChange={(e) => setFormData({ ...formData, ratePerKg: e.target.value })}
+                    value={formData.mortality}
+                    onChange={(e) => setFormData({ ...formData, mortality: e.target.value })}
                     placeholder="0"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Amount</Label>
-                  <Input readOnly className="bg-muted" value={amount ? `₹${amount.toLocaleString()}` : ""} />
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>Notes</Label>
+                  <Label>Transfer Note</Label>
                   <Input
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Optional notes"
+                    value={formData.transferNote}
+                    onChange={(e) => setFormData({ ...formData, transferNote: e.target.value })}
+                    placeholder="Any transfer notes"
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-                <Button onClick={handleSave}>{editingId ? "Update" : "Save"}</Button>
+              <div className="flex justify-between items-center pt-4">
+                <div className="text-sm text-muted-foreground">
+                  Total Birds: <span className="font-medium">{totalBirds || 0}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave}>{editingId ? "Update" : "Save"}</Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -290,12 +385,16 @@ export default function GodownInwardEntryPage() {
                 <CardDescription>List of all godown inward entries</CardDescription>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <DateRangeFilter startDate={dateRangeStart} endDate={dateRangeEnd} onDateRangeChange={handleDateRangeChange} />
+                <DateRangeFilter
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                />
                 <Input
-                  placeholder="Search by reference, source, cage..."
+                  placeholder="Search by invoice, vehicle, driver, bird type..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-[200px]"
+                  className="w-[260px]"
                 />
                 {searchQuery && (
                   <Button variant="ghost" size="icon" onClick={() => setSearchQuery("")}>
@@ -314,39 +413,60 @@ export default function GodownInwardEntryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Entry Date</TableHead>
-                    <TableHead>Reference No</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Cage ID</TableHead>
-                    <TableHead>Birds</TableHead>
-                    <TableHead>Weight (Kg)</TableHead>
-                    <TableHead>Rate/Kg</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Purchase Invoice No</TableHead>
+                    <TableHead>Source Vehicle No</TableHead>
+                    <TableHead>Driver Name</TableHead>
+                    <TableHead>Bird Type</TableHead>
+                    <TableHead>No of Cages</TableHead>
+                    <TableHead>No of Bird (Qty)</TableHead>
+                    <TableHead>Total Weight</TableHead>
+                    <TableHead>Mortality (if any)</TableHead>
+                    <TableHead>Transfer Note</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEntries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                         No inward entries found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredEntries.map((entry) => (
-                      <TableRow key={entry.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleView(entry)}>
-                        <TableCell>{entry.entryDate}</TableCell>
-                        <TableCell className="font-medium">{entry.referenceNo}</TableCell>
-                        <TableCell>{entry.source || "—"}</TableCell>
-                        <TableCell>{entry.cageId}</TableCell>
-                        <TableCell>{entry.numberOfBirds}</TableCell>
-                        <TableCell>{entry.weightKg}</TableCell>
-                        <TableCell>₹{entry.ratePerKg.toLocaleString()}</TableCell>
-                        <TableCell>₹{entry.amount.toLocaleString()}</TableCell>
-                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="outline" size="icon" onClick={() => handleEdit(entry)}><Edit2 size={16} /></Button>
-                          <Button variant="outline" size="icon" onClick={() => handleView(entry)}><Eye size={16} /></Button>
-                          <Button variant="outline" size="icon" onClick={() => handleDelete(entry.id)}><Trash2 size={16} /></Button>
+                      <TableRow
+                        key={entry.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleView(entry)}
+                      >
+                        <TableCell>{entry.date}</TableCell>
+                        <TableCell className="font-medium">{entry.purchaseInvoiceNo || "—"}</TableCell>
+                        <TableCell>{entry.sourceVehicleNo || "—"}</TableCell>
+                        <TableCell>{entry.driverName || "—"}</TableCell>
+                        <TableCell>{entry.birdType || "—"}</TableCell>
+                        <TableCell>{entry.numberOfCages || 0}</TableCell>
+                        <TableCell>{entry.numberOfBirds || 0}</TableCell>
+                        <TableCell>{entry.totalWeight || 0}</TableCell>
+                        <TableCell>{entry.mortality || 0}</TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={entry.transferNote}>
+                          {entry.transferNote || "—"}
+                        </TableCell>
+                        <TableCell
+                          className="text-right space-x-2"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                          }}
+                        >
+                          <Button variant="outline" size="icon" onClick={() => handleEdit(entry)}>
+                            <Edit2 size={16} />
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleView(entry)}>
+                            <Eye size={16} />
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleDelete(entry.id)}>
+                            <Trash2 size={16} />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -364,15 +484,30 @@ export default function GodownInwardEntryPage() {
             </DialogHeader>
             {viewingEntry && (
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="text-muted-foreground">Entry Date</div><div className="font-medium">{viewingEntry.entryDate}</div>
-                <div className="text-muted-foreground">Reference No</div><div className="font-medium">{viewingEntry.referenceNo}</div>
-                <div className="text-muted-foreground">Source</div><div>{viewingEntry.source || "—"}</div>
-                <div className="text-muted-foreground">Cage ID</div><div>{viewingEntry.cageId}</div>
-                <div className="text-muted-foreground">Number of Birds</div><div>{viewingEntry.numberOfBirds}</div>
-                <div className="text-muted-foreground">Weight (Kg)</div><div>{viewingEntry.weightKg}</div>
-                <div className="text-muted-foreground">Rate per Kg</div><div>₹{viewingEntry.ratePerKg.toLocaleString()}</div>
-                <div className="text-muted-foreground">Amount</div><div className="font-medium">₹{viewingEntry.amount.toLocaleString()}</div>
-                {viewingEntry.notes && (<><div className="text-muted-foreground col-span-2">Notes</div><div className="col-span-2">{viewingEntry.notes}</div></>)}
+                <div className="text-muted-foreground">Date</div>
+                <div className="font-medium">{viewingEntry.date}</div>
+                <div className="text-muted-foreground">Purchase Invoice No</div>
+                <div>{viewingEntry.purchaseInvoiceNo || "—"}</div>
+                <div className="text-muted-foreground">Source Vehicle No</div>
+                <div>{viewingEntry.sourceVehicleNo || "—"}</div>
+                <div className="text-muted-foreground">Driver Name</div>
+                <div>{viewingEntry.driverName || "—"}</div>
+                <div className="text-muted-foreground">Bird Type</div>
+                <div>{viewingEntry.birdType || "—"}</div>
+                <div className="text-muted-foreground">No of Cages</div>
+                <div>{viewingEntry.numberOfCages || 0}</div>
+                <div className="text-muted-foreground">No of Bird (Qty)</div>
+                <div>{viewingEntry.numberOfBirds || 0}</div>
+                <div className="text-muted-foreground">Total Weight</div>
+                <div>{viewingEntry.totalWeight || 0}</div>
+                <div className="text-muted-foreground">Mortality (if any)</div>
+                <div>{viewingEntry.mortality || 0}</div>
+                {viewingEntry.transferNote && (
+                  <>
+                    <div className="text-muted-foreground col-span-2">Transfer Note</div>
+                    <div className="col-span-2">{viewingEntry.transferNote}</div>
+                  </>
+                )}
               </div>
             )}
           </DialogContent>

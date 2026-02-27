@@ -117,7 +117,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </Tooltip>
             {godownOpen && sidebarOpen && (
               <div className="ml-4 space-y-1 border-l border-sidebar-border">
-                <SidebarLink href="/inventory" icon={Package} label="Godown Management" open={true} isSubItem={true} />
+                <SidebarLink href="/inventory" icon={Package} label="Godown Overview" open={true} isSubItem={true} />
                 <SidebarLink href="/godown/inward-entry" icon={Package} label="Godown Inward Entry" open={true} isSubItem={true} />
                 <SidebarLink href="/godown/sale" icon={Package} label="Godown Sale" open={true} isSubItem={true} />
                 <SidebarLink href="/godown/mortality" icon={Package} label="Godown Mortality" open={true} isSubItem={true} />
