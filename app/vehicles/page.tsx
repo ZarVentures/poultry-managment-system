@@ -19,6 +19,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X, Download, Printer } from "lucide-react"
 import { DateRangeFilter } from "@/components/date-range-filter"
+import { vehiclesApi, type Vehicle as ApiVehicle } from "@/lib/api"
+import { toast } from "sonner"
 
 interface Vehicle {
   id: string
@@ -28,9 +30,9 @@ interface Vehicle {
   phone: string
   ownerName?: string
   address?: string
-  totalCapacity: string
-  petrolTankCapacity: string
-  mileage: string
+  totalCapacity?: string
+  petrolTankCapacity?: string
+  mileage?: string
   joinDate: string
   status: "active" | "inactive"
   note?: string
@@ -39,6 +41,7 @@ interface Vehicle {
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [viewingVehicle, setViewingVehicle] = useState<Vehicle | null>(null)
@@ -62,42 +65,123 @@ export default function VehiclesPage() {
     note: "",
   })
 
+  // Fetch vehicles from API
+  const fetchVehicles = async () => {
+    try {
+      setLoading(true)
+      const data = await vehiclesApi.getAll()
+      setVehicles(data)
+    } catch (error) {
+      console.error('Failed to fetch vehicles:', error)
+      toast.error('Failed to load vehicles')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     setMounted(true)
-    const savedVehicles = localStorage.getItem("vehicles")
-    if (savedVehicles) {
-      const parsed = JSON.parse(savedVehicles)
-      // Add new fields for backward compatibility
-      const vehiclesWithFields = parsed.map((vehicle: Vehicle) => ({
-        ...vehicle,
-        status: vehicle.status || "active",
-        totalCapacity: vehicle.totalCapacity || vehicle.capacity || "",
-        petrolTankCapacity: vehicle.petrolTankCapacity || "",
-        mileage: vehicle.mileage || "",
-      }))
-      setVehicles(vehiclesWithFields)
-      // Update localStorage with new fields
-      localStorage.setItem("vehicles", JSON.stringify(vehiclesWithFields))
-    } else {
-      setVehicles([])
-    }
+    fetchVehicles()
   }, [])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.vehicleNumber || !formData.vehicleType || !formData.driverName || !formData.phone) {
-      alert("Please fill all required fields")
+      toast.error("Please fill all required fields")
       return
     }
 
-    if (editingId) {
-      const updated = vehicles.map((vehicle) =>
-        vehicle.id === editingId
-          ? {
-              ...vehicle,
-              vehicleNumber: formData.vehicleNumber,
-              vehicleType: formData.vehicleType,
-              driverName: formData.driverName,
-              phone: formData.phone,
+    try {
+      setLoading(true)
+      
+      const vehicleData = {
+        vehicleNumber: formData.vehicleNumber,
+        vehicleType: formData.vehicleType,
+        driverName: formData.driverName,
+        phone: formData.phone,
+        ownerName: formData.ownerName,
+        address: formData.address,
+        totalCapacity: formData.totalCapacity,
+        petrolTankCapacity: formData.petrolTankCapacity,
+        mileage: formData.mileage,
+        joinDate: formData.joinDate,
+        status: formData.status,
+        note: formData.note,
+      }
+      
+      if (editingId) {
+        // Update existing vehicle
+        await vehiclesApi.update(editingId, vehicleData)
+        toast.success("Vehicle updated successfully")
+      } else {
+        // Create new vehicle
+        await vehiclesApi.create(vehicleData)
+        toast.success("Vehicle created successfully")
+      }
+
+      // Refresh vehicles list
+      await fetchVehicles()
+      resetForm()
+      setShowDialog(false)
+    } catch (error) {
+      console.error('Failed to save vehicle:', error)
+      toast.error(editingId ? "Failed to update vehicle" : "Failed to create vehicle")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      vehicleNumber: "",
+      vehicleType: "",
+      driverName: "",
+      phone: "",
+      ownerName: "",
+      address: "",
+      totalCapacity: "",
+      petrolTankCapacity: "",
+      mileage: "",
+      joinDate: new Date().toISOString().split("T")[0],
+      status: "active" as "active" | "inactive",
+      note: "",
+    })
+    setEditingId(null)
+  }
+
+  const handleEdit = (vehicle: Vehicle) => {
+    setEditingId(vehicle.id)
+    setFormData({
+      vehicleNumber: vehicle.vehicleNumber,
+      vehicleType: vehicle.vehicleType,
+      driverName: vehicle.driverName,
+      phone: vehicle.phone,
+      ownerName: vehicle.ownerName || "",
+      address: vehicle.address || "",
+      totalCapacity: vehicle.totalCapacity || "",
+      petrolTankCapacity: vehicle.petrolTankCapacity || "",
+      mileage: vehicle.mileage || "",
+      joinDate: vehicle.joinDate || new Date().toISOString().split("T")[0],
+      status: vehicle.status || "active",
+      note: vehicle.note || "",
+    })
+    setShowDialog(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this vehicle?")) {
+      try {
+        setLoading(true)
+        await vehiclesApi.delete(id)
+        toast.success("Vehicle deleted successfully")
+        await fetchVehicles()
+      } catch (error) {
+        console.error('Failed to delete vehicle:', error)
+        toast.error("Failed to delete vehicle")
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
               ownerName: formData.ownerName,
               address: formData.address,
               totalCapacity: formData.totalCapacity,
@@ -534,8 +618,8 @@ export default function VehiclesPage() {
                     />
                   </div>
                 </div>
-                <Button onClick={handleSave} className="w-full">
-                  {editingId ? "Update" : "Add"} Vehicle
+                <Button onClick={handleSave} className="w-full" disabled={loading}>
+                  {loading ? "Saving..." : editingId ? "Update" : "Add"} Vehicle
                 </Button>
               </div>
             </DialogContent>

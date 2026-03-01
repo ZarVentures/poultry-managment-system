@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertCircle, Save, Lock, Bell, Palette } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { settingsApi, type Setting } from "@/lib/api"
+import { toast } from "sonner"
 
 interface Settings {
   farmName: string
@@ -23,6 +25,7 @@ interface Settings {
 
 export default function SettingsPage() {
   const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [settings, setSettings] = useState<Settings>({
     farmName: "Aziz Poultry Farm",
     farmLocation: "Country, Region",
@@ -39,19 +42,61 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setMounted(true)
-    const saved = localStorage.getItem("settings")
-    if (saved) {
-      const loaded = JSON.parse(saved)
-      setSettings(loaded)
-      setFormData(loaded)
-    }
+    fetchSettings()
   }, [])
 
-  const handleSave = () => {
-    localStorage.setItem("settings", JSON.stringify(formData))
-    setSettings(formData)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+  const fetchSettings = async () => {
+    try {
+      setLoading(true)
+      const data = await settingsApi.getAll()
+      
+      // Convert array of settings to object
+      const settingsObj: any = {}
+      data.forEach((setting: Setting) => {
+        if (setting.key === 'notifications' || setting.key === 'emailAlerts') {
+          settingsObj[setting.key] = setting.value === 'true'
+        } else {
+          settingsObj[setting.key] = setting.value
+        }
+      })
+      
+      // Merge with defaults
+      const merged = { ...settings, ...settingsObj }
+      setSettings(merged)
+      setFormData(merged)
+    } catch (error: any) {
+      console.error('Failed to fetch settings:', error)
+      toast.error('Failed to load settings')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      setLoading(true)
+      
+      // Save each setting
+      const promises = Object.entries(formData).map(([key, value]) =>
+        settingsApi.createOrUpdate({
+          key,
+          value: String(value),
+          category: 'general',
+        })
+      )
+      
+      await Promise.all(promises)
+      
+      setSettings(formData)
+      setSaved(true)
+      toast.success('Settings saved successfully!')
+      setTimeout(() => setSaved(false), 3000)
+    } catch (error: any) {
+      console.error('Failed to save settings:', error)
+      toast.error('Failed to save settings')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (!mounted) return null
@@ -96,6 +141,7 @@ export default function SettingsPage() {
                     value={formData.farmName}
                     onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
                     placeholder="Farm name"
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -104,6 +150,7 @@ export default function SettingsPage() {
                     value={formData.farmLocation}
                     onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
                     placeholder="City, Country"
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -113,6 +160,7 @@ export default function SettingsPage() {
                     value={formData.farmEmail}
                     onChange={(e) => setFormData({ ...formData, farmEmail: e.target.value })}
                     placeholder="email@farm.com"
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -121,6 +169,7 @@ export default function SettingsPage() {
                     value={formData.farmPhone}
                     onChange={(e) => setFormData({ ...formData, farmPhone: e.target.value })}
                     placeholder="+1-234-567-8900"
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -128,6 +177,7 @@ export default function SettingsPage() {
                   <Select
                     value={formData.currency}
                     onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                    disabled={loading}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -141,9 +191,9 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleSave} className="w-full">
+                <Button onClick={handleSave} className="w-full" disabled={loading}>
                   <Save className="mr-2" size={20} />
-                  Save Changes
+                  {loading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </CardContent>
             </Card>
@@ -164,6 +214,7 @@ export default function SettingsPage() {
                   <Select
                     value={formData.theme}
                     onValueChange={(value: any) => setFormData({ ...formData, theme: value })}
+                    disabled={loading}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -177,9 +228,9 @@ export default function SettingsPage() {
                     Note: Theme changes will be applied to your next session
                   </p>
                 </div>
-                <Button onClick={handleSave} className="w-full">
+                <Button onClick={handleSave} className="w-full" disabled={loading}>
                   <Save className="mr-2" size={20} />
-                  Save Changes
+                  {loading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </CardContent>
             </Card>
@@ -202,6 +253,7 @@ export default function SettingsPage() {
                       checked={formData.notifications}
                       onChange={(e) => setFormData({ ...formData, notifications: e.target.checked })}
                       className="w-4 h-4"
+                      disabled={loading}
                     />
                     <div>
                       <p className="font-medium">In-App Notifications</p>
@@ -215,6 +267,7 @@ export default function SettingsPage() {
                       checked={formData.emailAlerts}
                       onChange={(e) => setFormData({ ...formData, emailAlerts: e.target.checked })}
                       className="w-4 h-4"
+                      disabled={loading}
                     />
                     <div>
                       <p className="font-medium">Email Alerts</p>
@@ -229,9 +282,9 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <Button onClick={handleSave} className="w-full">
+                <Button onClick={handleSave} className="w-full" disabled={loading}>
                   <Save className="mr-2" size={20} />
-                  Save Preferences
+                  {loading ? 'Saving...' : 'Save Preferences'}
                 </Button>
               </CardContent>
             </Card>
@@ -247,11 +300,10 @@ export default function SettingsPage() {
                 <CardDescription>Manage your account security</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex gap-2">
-                  <AlertCircle size={20} className="text-yellow-700 dark:text-yellow-200 flex-shrink-0" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    This application uses localStorage for data persistence. For production use, consider implementing a
-                    secure backend database.
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex gap-2">
+                  <AlertCircle size={20} className="text-green-700 dark:text-green-200 flex-shrink-0" />
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    This application now uses a secure PostgreSQL database for data persistence.
                   </p>
                 </div>
 
@@ -269,7 +321,7 @@ export default function SettingsPage() {
                     <Button variant="outline" className="w-full justify-start bg-transparent">
                       Export Data
                     </Button>
-                    <Button variant="outline" className="w-full justify-start bg-transparent">
+                    <Button variant="outline" className="w-full justify-start bg-transparent text-red-600 hover:text-red-700">
                       Clear All Data
                     </Button>
                   </div>

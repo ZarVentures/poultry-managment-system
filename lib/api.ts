@@ -1,0 +1,583 @@
+// API Configuration and Utilities
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://chickenbackend.onrender.com/api/v1';
+
+// Get auth token from localStorage
+const getAuthToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
+
+// API request wrapper with auth
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = getAuthToken();
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Farmer Interface
+export interface Farmer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  status: 'active' | 'inactive';
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Retailer Interface
+export interface Retailer {
+  id: string;
+  name: string;
+  ownerName?: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  status: 'active' | 'inactive';
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Vehicle Interface
+export interface Vehicle {
+  id: string;
+  vehicleNumber: string;
+  vehicleType: string;
+  driverName: string;
+  phone: string;
+  ownerName?: string;
+  address?: string;
+  totalCapacity?: string;
+  petrolTankCapacity?: string;
+  mileage?: string;
+  joinDate: string;
+  status: 'active' | 'inactive';
+  note?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// User Interface
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'manager' | 'staff';
+  status: 'active' | 'inactive';
+  joinDate: string;
+  lastLogin?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Inventory Interface
+export interface InventoryItem {
+  id: number;
+  itemType: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  minimumStockLevel: number;
+  currentStockLevel: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  lastUpdated?: string;
+}
+
+// Sale Interface
+export interface Sale {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  saleDate: string;
+  productType: 'eggs' | 'meat' | 'chicks' | 'other';
+  quantity: number;
+  unit?: string;
+  unitPrice: number;
+  totalAmount: number;
+  paymentStatus: 'paid' | 'pending' | 'partial';
+  amountReceived: number;
+  notes?: string;
+  retailerId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Expense Interface
+export interface Expense {
+  id: string;
+  expenseDate: string;
+  category: 'feed' | 'labor' | 'medicine' | 'utilities' | 'equipment' | 'maintenance' | 'transportation' | 'other';
+  description: string;
+  amount: number;
+  paymentMethod: 'cash' | 'bank_transfer' | 'check' | 'credit_card';
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Purchase Order Interface
+export interface PurchaseOrderItem {
+  id?: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  orderNumber: string;
+  supplierName: string;
+  orderDate: string;
+  dueDate?: string;
+  status: 'pending' | 'received' | 'cancelled';
+  totalAmount: number;
+  notes?: string;
+  items: PurchaseOrderItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Settings Interface
+export interface Setting {
+  key: string;
+  value: string;
+  category?: string;
+  description?: string;
+  updatedAt?: string;
+}
+
+// Godown Interfaces
+export interface GodownInward {
+  id: string;
+  entryDate: string;
+  farmerName: string;
+  vehicleNumber: string;
+  quantity: number;
+  unit: string;
+  rate: number;
+  totalAmount: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GodownSale {
+  id: string;
+  saleDate: string;
+  customerName: string;
+  quantity: number;
+  unit: string;
+  rate: number;
+  totalAmount: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GodownMortality {
+  id: string;
+  mortalityDate: string;
+  quantity: number;
+  unit: string;
+  reason?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GodownExpense {
+  id: string;
+  expenseDate: string;
+  category: string;
+  description: string;
+  amount: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GodownSummary {
+  totalInward: number;
+  totalSales: number;
+  totalMortality: number;
+  totalExpenses: number;
+  currentStock: number;
+}
+
+// ============================================
+// FARMERS API
+// ============================================
+export const farmersApi = {
+  getAll: () => apiRequest<Farmer[]>('/farmers'),
+  
+  getOne: (id: string) => apiRequest<Farmer>(`/farmers/${id}`),
+  
+  create: (data: Omit<Farmer, 'id' | 'createdAt' | 'updatedAt'>) =>
+    apiRequest<Farmer>('/farmers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: string, data: Partial<Farmer>) =>
+    apiRequest<Farmer>(`/farmers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: string) =>
+    apiRequest<void>(`/farmers/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// RETAILERS API
+// ============================================
+export const retailersApi = {
+  getAll: () => apiRequest<Retailer[]>('/retailers'),
+  
+  getOne: (id: string) => apiRequest<Retailer>(`/retailers/${id}`),
+  
+  create: (data: Omit<Retailer, 'id' | 'createdAt' | 'updatedAt'>) =>
+    apiRequest<Retailer>('/retailers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: string, data: Partial<Retailer>) =>
+    apiRequest<Retailer>(`/retailers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: string) =>
+    apiRequest<void>(`/retailers/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// VEHICLES API
+// ============================================
+export const vehiclesApi = {
+  getAll: () => apiRequest<Vehicle[]>('/vehicles'),
+  
+  getOne: (id: string) => apiRequest<Vehicle>(`/vehicles/${id}`),
+  
+  create: (data: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt'>) =>
+    apiRequest<Vehicle>('/vehicles', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: string, data: Partial<Vehicle>) =>
+    apiRequest<Vehicle>(`/vehicles/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: string) =>
+    apiRequest<void>(`/vehicles/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// USERS API
+// ============================================
+export const usersApi = {
+  getAll: () => apiRequest<User[]>('/users'),
+  
+  getOne: (id: string) => apiRequest<User>(`/users/${id}`),
+  
+  create: (data: { name: string; email: string; password: string; role: string; status: string }) =>
+    apiRequest<User>('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: string, data: Partial<User>) =>
+    apiRequest<User>(`/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: string) =>
+    apiRequest<void>(`/users/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// ============================================
+// AUTH API
+// ============================================
+export const authApi = {
+  login: (email: string, password: string) =>
+    apiRequest<{ accessToken: string; user: User }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  
+  logout: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+  },
+};
+
+// ============================================
+// INVENTORY API
+// ============================================
+export const inventoryApi = {
+  getAll: () => apiRequest<InventoryItem[]>('/inventory'),
+  
+  getOne: (id: number) => apiRequest<InventoryItem>(`/inventory/${id}`),
+  
+  create: (data: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt' | 'lastUpdated'>) =>
+    apiRequest<InventoryItem>('/inventory', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: number, data: Partial<InventoryItem>) =>
+    apiRequest<InventoryItem>(`/inventory/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: number) =>
+    apiRequest<void>(`/inventory/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// SALES API
+// ============================================
+export const salesApi = {
+  getAll: () => apiRequest<Sale[]>('/sales'),
+  
+  getOne: (id: string) => apiRequest<Sale>(`/sales/${id}`),
+  
+  create: (data: Omit<Sale, 'id' | 'createdAt' | 'updatedAt'>) =>
+    apiRequest<Sale>('/sales', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: string, data: Partial<Sale>) =>
+    apiRequest<Sale>(`/sales/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: string) =>
+    apiRequest<void>(`/sales/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// EXPENSES API
+// ============================================
+export const expensesApi = {
+  getAll: () => apiRequest<Expense[]>('/expenses'),
+  
+  getOne: (id: string) => apiRequest<Expense>(`/expenses/${id}`),
+  
+  create: (data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) =>
+    apiRequest<Expense>('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: string, data: Partial<Expense>) =>
+    apiRequest<Expense>(`/expenses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: string) =>
+    apiRequest<void>(`/expenses/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// PURCHASES API
+// ============================================
+export const purchasesApi = {
+  getAll: () => apiRequest<PurchaseOrder[]>('/purchases'),
+  
+  getOne: (id: string) => apiRequest<PurchaseOrder>(`/purchases/${id}`),
+  
+  create: (data: Omit<PurchaseOrder, 'id' | 'createdAt' | 'updatedAt'>) =>
+    apiRequest<PurchaseOrder>('/purchases', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  update: (id: string, data: Partial<PurchaseOrder>) =>
+    apiRequest<PurchaseOrder>(`/purchases/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  
+  delete: (id: string) =>
+    apiRequest<void>(`/purchases/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
+// SETTINGS API
+// ============================================
+export const settingsApi = {
+  getAll: () => apiRequest<Setting[]>('/settings'),
+  
+  getOne: (key: string) => apiRequest<Setting>(`/settings/${key}`),
+  
+  update: (key: string, value: string) =>
+    apiRequest<Setting>(`/settings/${key}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ value }),
+    }),
+  
+  createOrUpdate: (data: { key: string; value: string; category?: string; description?: string }) =>
+    apiRequest<Setting>('/settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ============================================
+// GODOWN API
+// ============================================
+export const godownApi = {
+  // Inward Entries
+  inward: {
+    getAll: () => apiRequest<GodownInward[]>('/godown/inward'),
+    getOne: (id: string) => apiRequest<GodownInward>(`/godown/inward/${id}`),
+    create: (data: Omit<GodownInward, 'id' | 'createdAt' | 'updatedAt'>) =>
+      apiRequest<GodownInward>('/godown/inward', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: Partial<GodownInward>) =>
+      apiRequest<GodownInward>(`/godown/inward/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      apiRequest<void>(`/godown/inward/${id}`, {
+        method: 'DELETE',
+      }),
+  },
+  
+  // Sales
+  sales: {
+    getAll: () => apiRequest<GodownSale[]>('/godown/sales'),
+    getOne: (id: string) => apiRequest<GodownSale>(`/godown/sales/${id}`),
+    create: (data: Omit<GodownSale, 'id' | 'createdAt' | 'updatedAt'>) =>
+      apiRequest<GodownSale>('/godown/sales', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: Partial<GodownSale>) =>
+      apiRequest<GodownSale>(`/godown/sales/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      apiRequest<void>(`/godown/sales/${id}`, {
+        method: 'DELETE',
+      }),
+  },
+  
+  // Mortality
+  mortality: {
+    getAll: () => apiRequest<GodownMortality[]>('/godown/mortality'),
+    getOne: (id: string) => apiRequest<GodownMortality>(`/godown/mortality/${id}`),
+    create: (data: Omit<GodownMortality, 'id' | 'createdAt' | 'updatedAt'>) =>
+      apiRequest<GodownMortality>('/godown/mortality', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: Partial<GodownMortality>) =>
+      apiRequest<GodownMortality>(`/godown/mortality/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      apiRequest<void>(`/godown/mortality/${id}`, {
+        method: 'DELETE',
+      }),
+  },
+  
+  // Expenses
+  expenses: {
+    getAll: () => apiRequest<GodownExpense[]>('/godown/expenses'),
+    getOne: (id: string) => apiRequest<GodownExpense>(`/godown/expenses/${id}`),
+    create: (data: Omit<GodownExpense, 'id' | 'createdAt' | 'updatedAt'>) =>
+      apiRequest<GodownExpense>('/godown/expenses', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: Partial<GodownExpense>) =>
+      apiRequest<GodownExpense>(`/godown/expenses/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      apiRequest<void>(`/godown/expenses/${id}`, {
+        method: 'DELETE',
+      }),
+  },
+  
+  // Summary
+  getSummary: () => apiRequest<GodownSummary>('/godown/summary'),
+};
+
+export default {
+  farmers: farmersApi,
+  retailers: retailersApi,
+  vehicles: vehiclesApi,
+  users: usersApi,
+  auth: authApi,
+  inventory: inventoryApi,
+  sales: salesApi,
+  expenses: expensesApi,
+  purchases: purchasesApi,
+  settings: settingsApi,
+  godown: godownApi,
+};
