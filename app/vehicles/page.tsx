@@ -194,7 +194,6 @@ export default function VehiclesPage() {
           : vehicle,
       )
       setVehicles(updated)
-      localStorage.setItem("vehicles", JSON.stringify(updated))
     } else {
       const newVehicle: Vehicle = {
         id: Date.now().toString(),
@@ -213,7 +212,6 @@ export default function VehiclesPage() {
       }
       const updated = [...vehicles, newVehicle]
       setVehicles(updated)
-      localStorage.setItem("vehicles", JSON.stringify(updated))
     }
 
     resetForm()
@@ -261,7 +259,6 @@ export default function VehiclesPage() {
     if (confirm("Are you sure you want to delete this vehicle?")) {
       const updated = vehicles.filter((vehicle) => vehicle.id !== id)
       setVehicles(updated)
-      localStorage.setItem("vehicles", JSON.stringify(updated))
     }
   }
 

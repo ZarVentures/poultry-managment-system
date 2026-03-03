@@ -167,7 +167,6 @@ export default function FarmersPage() {
     if (confirm("Are you sure you want to delete this farmer?")) {
       const updated = farmers.filter((farmer) => farmer.id !== id)
       setFarmers(updated)
-      localStorage.setItem("farmers", JSON.stringify(updated))
     }
   }
 
