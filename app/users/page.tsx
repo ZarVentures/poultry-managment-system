@@ -160,9 +160,12 @@ export default function UsersPage() {
                 Add New User
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit User" : "Add New User"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit user details" : "Add a new user to the system"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
