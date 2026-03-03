@@ -158,11 +158,11 @@ export default function MortalityPage() {
       setFormData({
         ...formData,
         purchaseInvoiceNo: invoiceNo,
-        purchaseDate: purchase.purchaseDate || purchase.date || new Date().toISOString().split("T")[0],
-        farmerName: purchase.farmerName || purchase.supplier || "",
+        purchaseDate: purchase.purchaseDate || new Date().toISOString().split("T")[0],
+        farmerName: purchase.farmerName || "",
         farmLocation: purchase.farmLocation || "",
         cageIdNumber: "",
-        totalBirdsPurchased: (purchase.numberOfBirds || purchase.birdQuantity || 0).toString(),
+        totalBirdsPurchased: (purchase.numberOfBirds || 0).toString(),
       })
     } else {
       setFormData({
