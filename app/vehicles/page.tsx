@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit2, Trash2, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -221,10 +222,9 @@ export default function VehiclesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Join Date *</Label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={formData.joinDate}
-                      onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, joinDate: date })}
                       disabled={loading}
                     />
                   </div>

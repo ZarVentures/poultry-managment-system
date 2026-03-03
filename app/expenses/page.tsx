@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit2, Trash2, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -152,10 +153,9 @@ export default function ExpensesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Date *</Label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={formData.expenseDate}
-                      onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, expenseDate: date })}
                       disabled={loading}
                     />
                   </div>

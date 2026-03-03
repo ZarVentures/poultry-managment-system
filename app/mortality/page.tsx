@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -558,10 +559,10 @@ export default function MortalityPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Purchase Date <span className="text-red-500">*</span></Label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={formData.purchaseDate}
-                      onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, purchaseDate: date })}
+                      disabled={loading}
                     />
                   </div>
                 </div>

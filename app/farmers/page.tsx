@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, X, Download, Printer } from "lucide-react"
@@ -420,11 +421,11 @@ export default function FarmersPage() {
                 </div>
                   <div className="space-y-2">
                     <Label>Join Date *</Label>
-                  <Input
-                      type="date"
+                  <DatePicker
                       value={formData.joinDate}
-                      onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
-                  />
+                      onChange={(date) => setFormData({ ...formData, joinDate: date })}
+                      disabled={loading}
+                    />
                 </div>
                   <div className="space-y-2">
                     <Label>Status *</Label>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit2, Trash2, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -214,10 +215,9 @@ export default function SalesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Sale Date *</Label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={formData.saleDate}
-                      onChange={(e) => setFormData({ ...formData, saleDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, saleDate: date })}
                       disabled={loading}
                     />
                   </div>

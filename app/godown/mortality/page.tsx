@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit2, Trash2, X } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
@@ -146,10 +147,9 @@ export default function GodownMortalityPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Date *</Label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={formData.mortalityDate}
-                    onChange={(e) => setFormData({ ...formData, mortalityDate: e.target.value })}
+                    onChange={(date) => setFormData({ ...formData, mortalityDate: date })}
                     disabled={loading}
                   />
                 </div>
