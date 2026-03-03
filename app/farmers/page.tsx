@@ -138,7 +138,7 @@ export default function FarmersPage() {
     setFormData({
       name: farmer.name,
       phone: farmer.phone,
-      address: farmer.address,
+      address: farmer.address || "",
       joinDate: farmer.joinDate || new Date().toISOString().split("T")[0],
       status: farmer.status || "active",
       note: farmer.note || "",
