@@ -151,9 +151,12 @@ export default function VehiclesPage() {
                 New Vehicle
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Vehicle" : "New Vehicle"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit vehicle details" : "Add a new vehicle to the system"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

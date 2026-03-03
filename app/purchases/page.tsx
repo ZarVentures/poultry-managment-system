@@ -200,9 +200,12 @@ export default function PurchasesPage() {
                 New Purchase Order
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Purchase Order" : "New Purchase Order"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit purchase order details" : "Create a new purchase order"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

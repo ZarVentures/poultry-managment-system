@@ -136,9 +136,12 @@ export default function GodownExpensePage() {
                 New Expense
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl" aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Expense" : "New Expense"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit godown expense details" : "Create a new godown expense"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

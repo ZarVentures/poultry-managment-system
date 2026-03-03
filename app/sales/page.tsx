@@ -194,9 +194,12 @@ export default function SalesPage() {
                 New Sale
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Sale" : "New Sale"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit sale details" : "Create a new sale record"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -222,12 +225,11 @@ export default function SalesPage() {
 
                 <div className="space-y-2">
                   <Label>Retailer (Optional)</Label>
-                  <Select value={formData.retailerId} onValueChange={handleRetailerChange} disabled={loading}>
+                  <Select value={formData.retailerId || undefined} onValueChange={handleRetailerChange} disabled={loading}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select retailer" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
                       {retailers.map((retailer) => (
                         <SelectItem key={retailer.id} value={retailer.id}>
                           {retailer.name}

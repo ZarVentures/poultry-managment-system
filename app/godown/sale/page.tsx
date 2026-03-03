@@ -172,9 +172,12 @@ export default function GodownSalePage() {
                 New Sale
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl" aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Sale" : "New Sale"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit godown sale details" : "Create a new godown sale"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">

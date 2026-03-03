@@ -152,9 +152,12 @@ export default function RetailersPage() {
                 New Retailer
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl" aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Retailer" : "New Retailer"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit retailer details" : "Add a new retailer to the system"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

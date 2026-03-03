@@ -601,9 +601,6 @@ export default function MortalityPage() {
                         <SelectValue placeholder={!formData.purchaseInvoiceNo ? "Select invoice first" : cageIdOptions.length === 0 ? "No cage IDs for this invoice" : "Select cage ID"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {formData.purchaseInvoiceNo && cageIdOptions.length > 0 && (
-                          <SelectItem value="">—</SelectItem>
-                        )}
                         {cageIdOptions.map((cageId) => (
                           <SelectItem key={cageId} value={cageId}>
                             {cageId}
