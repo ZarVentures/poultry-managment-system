@@ -188,9 +188,12 @@ export default function GodownInwardPage() {
                 New Entry
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl" aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Entry" : "New Entry"}</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  {editingId ? "Edit godown inward entry details" : "Create a new godown inward entry"}
+                </p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -205,12 +208,11 @@ export default function GodownInwardPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Farmer (Optional)</Label>
-                    <Select value={formData.farmerName} onValueChange={handleFarmerChange} disabled={loading}>
+                    <Select value={formData.farmerName || undefined} onValueChange={handleFarmerChange} disabled={loading}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select farmer" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
                         {farmers.map((farmer) => (
                           <SelectItem key={farmer.id} value={farmer.id}>
                             {farmer.name}
@@ -234,7 +236,7 @@ export default function GodownInwardPage() {
                 <div className="space-y-2">
                   <Label>Vehicle Number</Label>
                   <Select
-                    value={formData.vehicleNumber}
+                    value={formData.vehicleNumber || undefined}
                     onValueChange={(value) => setFormData({ ...formData, vehicleNumber: value })}
                     disabled={loading}
                   >
@@ -242,7 +244,6 @@ export default function GodownInwardPage() {
                       <SelectValue placeholder="Select vehicle" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
                       {vehicles.map((vehicle) => (
                         <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
                           {vehicle.vehicleNumber} - {vehicle.driverName}
