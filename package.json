@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "rm -rf .next || true",
     "build": "next build",
     "dev": "next dev -p 3002",
     "lint": "eslint .",
